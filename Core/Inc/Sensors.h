@@ -55,6 +55,13 @@ typedef struct {
 	bool *lora_good;
 } Sensor_State;
 
+// Buffers to store last sensor data read
+#define STREAM_METADATA_SIZE	8		// Number of bytes contained in metadata (header = 4 bytes + crc32 = 4 bytes)
+uint8_t sensor_data_stream_buffer[512];
+uint8_t sensor_data_stream_offset;
+
+
+
 #define GPS_Buff_Size 1024
 typedef struct {
 	uint8_t gps_buffer[GPS_Buff_Size];
