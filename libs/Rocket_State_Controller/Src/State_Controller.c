@@ -23,6 +23,8 @@ uint8_t init_state_controller(float starting_altitude)
 {
     system_state.flight_state = IDLE_ON_PAD;
 
+    system_state.starting_altitude = starting_altitude;
+
     // Initialise launch median filter
     initMedianFilter(&launch_median_filter, LAUNCH_ACCEL_FILTER_WIDTH, LAUNCH_ACCEL_FILTER_FREQ);
 

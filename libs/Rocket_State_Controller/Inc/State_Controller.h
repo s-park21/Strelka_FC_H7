@@ -48,7 +48,7 @@
 #define APOGEE_DETECT_ACCEL_THRESHOLD 2.0	  // g
 
 // Main deploy altitude detection constants
-#define MAIN_DEPLOY_ALTITUDE 300 // m above the starting altitude (ground)
+#define MAIN_DEPLOY_ALTITUDE 150 // m above the starting altitude (ground)
 
 // Landing detection constants
 #define LANDING_SPEED_THRESHOLD 1.0f		 // m/s (magnitude)

@@ -44,9 +44,9 @@ typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 
 // Uncomment to allow for binary data stream logging
-#define BINARY_LOGGING
+//#define BINARY_LOGGING
 // Uncomment to allow for csv logging (less efficient)
-//#define CSV_LOGGING
+#define CSV_LOGGING
 
 /* USER CODE END PTD */
 
@@ -268,6 +268,11 @@ float qu[4] = { 0, 0, 0.7071068, 0.7071068 }; // Corresponds to 0, 0, 90 YPR
 float EKF_P[16] = { 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01 };
 float EKF_Q[16] = { 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01 };
 float EKF_R[9] = { 10, 0, 0, 0, 10, 0, 0, 0, 10 };
+
+// Buffers to store last sensor data read
+#define STREAM_METADATA_SIZE	8		// Number of bytes contained in metadata (header = 4 bytes + crc32 = 4 bytes)
+uint8_t sensor_data_stream_buffer[512];
+uint8_t sensor_data_stream_offset;
 
 // FDCAN1 Defines
 FDCAN_TxHeaderTypeDef TxHeader1;
@@ -700,15 +705,15 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.Mode = FDCAN_MODE_INTERNAL_LOOPBACK;
   hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = ENABLE;
-  hfdcan1.Init.NominalPrescaler = 6;
+  hfdcan1.Init.NominalPrescaler = 192;
   hfdcan1.Init.NominalSyncJumpWidth = 8;
-  hfdcan1.Init.NominalTimeSeg1 = 13;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
-  hfdcan1.Init.DataPrescaler = 25;
+  hfdcan1.Init.NominalTimeSeg1 = 4;
+  hfdcan1.Init.NominalTimeSeg2 = 3;
+  hfdcan1.Init.DataPrescaler = 1;
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 0x1F;
   hfdcan1.Init.DataTimeSeg2 = 8;
@@ -719,10 +724,10 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.RxFifo1ElmtsNbr = 0;
   hfdcan1.Init.RxFifo1ElmtSize = FDCAN_DATA_BYTES_8;
-  hfdcan1.Init.RxBuffersNbr = 1;
+  hfdcan1.Init.RxBuffersNbr = 0;
   hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
-  hfdcan1.Init.TxEventsNbr = 1;
-  hfdcan1.Init.TxBuffersNbr = 1;
+  hfdcan1.Init.TxEventsNbr = 0;
+  hfdcan1.Init.TxBuffersNbr = 0;
   hfdcan1.Init.TxFifoQueueElmtsNbr = 1;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
@@ -1775,6 +1780,8 @@ void State_Machine(void *argument)
 	while (1) {
 		float angle_from_vertical;
 		uint8_t result = calculate_attitude_error(&ekf.qu, &up_vec, &angle_from_vertical, &normal_vector);
+		// Remove to enable angle check
+		angle_from_vertical = 0;
 		if (!result) {
 			// TODO: Determine why ASM330 fails occasionally
 			if (asm330.acc_good) {
@@ -2427,13 +2434,13 @@ void CAN(void *argument)
 	sFilterConfig.FilterIndex = 0;
 	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-	sFilterConfig.FilterID1 = 0x000;
-	sFilterConfig.FilterID2 = 0x000;
-	sFilterConfig.RxBufferIndex = 0;
+	sFilterConfig.FilterID1 = 0x321;
+	sFilterConfig.FilterID2 = 0x7FF;
 	if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
 		/* Filter configuration Error */
 		Error_Handler();
 	}
+	HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
 
 	if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
 		Error_Handler();
@@ -2446,10 +2453,10 @@ void CAN(void *argument)
 	}
 
 	// Configure TX Header for FDCAN1
-	TxHeader1.Identifier = 0x1;
+	TxHeader1.Identifier = 0x321;
 	TxHeader1.IdType = FDCAN_STANDARD_ID;
 	TxHeader1.TxFrameType = FDCAN_DATA_FRAME;
-	TxHeader1.DataLength = FDCAN_DLC_BYTES_8;
+	TxHeader1.DataLength = FDCAN_DLC_BYTES_2;
 	TxHeader1.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
 	TxHeader1.BitRateSwitch = FDCAN_BRS_OFF;
 	TxHeader1.FDFormat = FDCAN_CLASSIC_CAN;
@@ -2463,7 +2470,8 @@ void CAN(void *argument)
 
 		/* get actual psr value */
 		HAL_FDCAN_GetProtocolStatus(&hfdcan1, &psr);
-		sprintf((char*) TxData1, "TX %d", indx++);
+		TxData1[0] = 0xAA;
+		TxData1[0] = 1;
 		HAL_StatusTypeDef res = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader1, TxData1);
 		if (res != HAL_OK) {
 //			Error_Handler();
