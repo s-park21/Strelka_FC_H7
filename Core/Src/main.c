@@ -256,7 +256,7 @@ GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
-SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 20, .flash_logging_enabled = true };
+SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 20, .flash_logging_enabled = false };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
@@ -705,11 +705,11 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hfdcan1.Init.Mode = FDCAN_MODE_INTERNAL_LOOPBACK;
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
   hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = ENABLE;
-  hfdcan1.Init.NominalPrescaler = 192;
+  hfdcan1.Init.NominalPrescaler = 12;
   hfdcan1.Init.NominalSyncJumpWidth = 8;
   hfdcan1.Init.NominalTimeSeg1 = 4;
   hfdcan1.Init.NominalTimeSeg2 = 3;
@@ -1568,7 +1568,7 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 		send_rf_packet(GYRO1_STATE_RES, (uint8_t*) &gyro1_state_pkt, sizeof(gyro1_state_pkt));
 		break;
 	case GYRO2_STATE_REQ:
-		gyro2_state_res gyro2_state_pkt = { .gyro2_good = asm330.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], };
+l		gyro2_state_res gyro2_state_pkt = { .gyro2_good = asm330.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], };
 		send_rf_packet(GYRO2_STATE_RES, (uint8_t*) &gyro2_state_pkt, sizeof(gyro2_state_pkt));
 		break;
 	case MAG1_STATE_REQ:
@@ -2432,9 +2432,9 @@ void CAN(void *argument)
 
 	sFilterConfig.IdType = FDCAN_STANDARD_ID;
 	sFilterConfig.FilterIndex = 0;
-	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+	sFilterConfig.FilterType = FDCAN_FILTER_RANGE;	// This accepts all addresses between FilterID1 and FilterID2
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-	sFilterConfig.FilterID1 = 0x321;
+	sFilterConfig.FilterID1 = 0x321;				// It seems that it only accepts incoming packets from this address
 	sFilterConfig.FilterID2 = 0x7FF;
 	if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
 		/* Filter configuration Error */
@@ -2453,7 +2453,7 @@ void CAN(void *argument)
 	}
 
 	// Configure TX Header for FDCAN1
-	TxHeader1.Identifier = 0x321;
+	TxHeader1.Identifier = 0x325;			// This number defines the CAN ID of this device when transmitting
 	TxHeader1.IdType = FDCAN_STANDARD_ID;
 	TxHeader1.TxFrameType = FDCAN_DATA_FRAME;
 	TxHeader1.DataLength = FDCAN_DLC_BYTES_2;
@@ -2470,8 +2470,8 @@ void CAN(void *argument)
 
 		/* get actual psr value */
 		HAL_FDCAN_GetProtocolStatus(&hfdcan1, &psr);
-		TxData1[0] = 0xAA;
-		TxData1[0] = 1;
+		TxData1[0] = indx++;
+		TxData1[1] = 1;
 		HAL_StatusTypeDef res = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader1, TxData1);
 		if (res != HAL_OK) {
 //			Error_Handler();
