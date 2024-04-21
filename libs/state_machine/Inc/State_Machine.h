@@ -8,8 +8,6 @@
 #ifndef INC_STATE_MACHINE_H_
 #define INC_STATE_MACHINE_H_
 #include <stdbool.h>
-//#include "stm32f4xx_hal.h"
-//#include "stm32h7xx_hal.h"
 #include "main.h"
 #include <math.h>
 #include <stdlib.h>

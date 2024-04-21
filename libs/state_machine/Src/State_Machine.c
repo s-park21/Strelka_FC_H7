@@ -154,6 +154,7 @@ void deploy_main_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t 
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_RESET);
 }
 
+// This function is not thread safe and must block for the entire duration
 ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint16_t L_pin, uint32_t adcChannel)
 {
 	ematchState state;
@@ -161,16 +162,17 @@ ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint1
 
 	// Set FIRE_L pin to allow for continuity sensing
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_SET);
-
 	ADC_ChannelConfTypeDef sConfig = {0};
 	/** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
 	 */
 	if (adcChannel == ADC_CHANNEL_8)
 	{
+		// Drogue
 		sConfig.Rank = ADC_REGULAR_RANK_2;
 	}
 	else
 	{
+		// Main
 		sConfig.Rank = ADC_REGULAR_RANK_1;
 	}
 	sConfig.Channel = adcChannel;
@@ -181,16 +183,21 @@ ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint1
 	sConfig.OffsetSignedSaturation = DISABLE;
 	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
 	{
-		Error_Handler();
+		Non_Blocking_Error_Handler();
 	}
 
 	// Start ADC
 	res = HAL_ADC_Start(hadc);
+	osDelay(100);
 	res = HAL_ADC_PollForConversion(hadc, 1);
 	if (res == HAL_TIMEOUT)
 		return EMATCH_ERROR;
-
-	uint32_t AD_RES = HAL_ADC_GetValue(hadc);
+	// Average readings
+	uint32_t AD_RES = 0;
+	for(int i=0; i<200; i++) {
+		AD_RES += HAL_ADC_GetValue(hadc);
+	}
+	AD_RES/=200;
 	if (AD_RES > 40000)
 	{
 		state = OPEN_CIRCUIT;
@@ -244,6 +251,7 @@ float convertToVoltage(uint16_t adcValue)
 	return (adcValue / (float)ADC_MAX_VALUE) * V_REF;
 }
 
+// This function is not thread safe and must block for the entire duration
 float calculateBatteryVoltage(ADC_HandleTypeDef *hadc)
 {
 	HAL_StatusTypeDef res;
@@ -256,7 +264,7 @@ float calculateBatteryVoltage(ADC_HandleTypeDef *hadc)
 	sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
 	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
 	{
-		Error_Handler();
+		Non_Blocking_Error_Handler();
 	}
 
 	// Start ADC

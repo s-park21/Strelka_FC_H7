@@ -41,7 +41,6 @@ FRESULT SD_init()
 		else
 			Non_Blocking_Error_Handler();
 	}
-
 	res = SD_mk_root_dir();
 	if (res != FR_OK)
 	{

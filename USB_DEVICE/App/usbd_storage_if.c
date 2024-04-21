@@ -196,8 +196,7 @@ int8_t STORAGE_GetCapacity_FS(uint8_t lun, uint32_t *block_num, uint16_t *block_
 
 	*block_num = info.LogBlockNbr - 1;
 	*block_size = info.LogBlockSize;
-	ret = 0;
-	return ret;
+	return USBD_OK;
   /* USER CODE END 3 */
 }
 
@@ -209,7 +208,10 @@ int8_t STORAGE_GetCapacity_FS(uint8_t lun, uint32_t *block_num, uint16_t *block_
 int8_t STORAGE_IsReady_FS(uint8_t lun)
 {
   /* USER CODE BEGIN 4 */
-	return (USBD_OK);
+	if(SD_card.flash_good) {
+		return (USBD_OK);
+	}
+	else return USBD_FAIL;
   /* USER CODE END 4 */
 }
 

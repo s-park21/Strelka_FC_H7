@@ -58,7 +58,7 @@ uint8_t get_rf_payload_len(uint8_t identifier);
 uint32_t Calculate_CRC32(CRC_HandleTypeDef *hcrc, uint8_t *payload_data, size_t len);
 void handle_payload_data(uint8_t identifier, uint8_t *payload_data);
 void send_rf_packet(uint16_t identifier, uint8_t* payload_data, size_t len);
-
+void Non_Blocking_Error_Handler();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
