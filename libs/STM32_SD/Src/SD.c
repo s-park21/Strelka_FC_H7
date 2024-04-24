@@ -607,7 +607,7 @@ FRESULT delete_directory_contents(const TCHAR *path)
 			result = delete_directory_contents(file_path);
 			if (result != FR_OK)
 			{
-				return result;
+//				return result;
 			}
 		}
 		else
@@ -616,7 +616,7 @@ FRESULT delete_directory_contents(const TCHAR *path)
 			result = f_unlink(file_path);
 			if (result != FR_OK)
 			{
-				return result;
+//				return result;
 			}
 		}
 	}

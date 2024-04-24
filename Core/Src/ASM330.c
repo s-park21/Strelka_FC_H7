@@ -81,6 +81,11 @@ uint8_t ASM330_Init(ASM330_handle *asm330) {
 	int2_route.int2_ctrl.int2_drdy_g = PROPERTY_ENABLE;
 	asm330lhhx_pin_int2_route_set(&asm330->dev_ctx, &int2_route);
 
+	// Set data ready interrupt to be pulsed (75us long)
+	asm330lhhx_dataready_pulsed_t val;
+	val = ASM330LHHX_DRDY_PULSED;
+	asm330lhhx_data_ready_mode_set(&asm330->dev_ctx, val);
+
 	return 0;
 }
 
