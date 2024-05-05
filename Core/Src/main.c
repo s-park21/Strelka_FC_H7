@@ -44,11 +44,6 @@ typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticSemaphore_t osStaticSemaphoreDef_t;
 /* USER CODE BEGIN PTD */
 
-// Uncomment to allow for binary data stream logging
-//#define BINARY_LOGGING
-// Uncomment to allow for csv logging (less efficient)
-#define CSV_LOGGING
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -209,7 +204,7 @@ SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 100, .flash_loggin
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
-GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 1 };
+GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
 stream_packet_config_set packet_streamer = { .stream_packet_type_enabled = 10, .packet_stream_frequency = 0.5 };
 EKF ekf = { .do_update = true, };
 float EKF_K[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -342,8 +337,8 @@ int main(void) {
 	LoRa_Handle.spredingFactor = SF_7;		 // default = SF_7
 	LoRa_Handle.bandWidth = BW_125KHz;		 // default = BW_125KHz
 	LoRa_Handle.crcRate = CR_4_5;			 // default = CR_4_5
-	LoRa_Handle.power = POWER_20db;			 // default = 20db
-	LoRa_Handle.overCurrentProtection = 100; // default = 100 mA
+	LoRa_Handle.power = POWER_17db;			 // default = 17db
+	LoRa_Handle.overCurrentProtection = 120; // default = 100 mA
 	LoRa_Handle.preamble = 8;				 // default = 8;
 
 	HAL_GPIO_WritePin(SPI2_NSS5_GPIO_Port, SPI2_NSS5_Pin, GPIO_PIN_SET);
@@ -1600,7 +1595,9 @@ void send_rf_packet(uint16_t identifier, uint8_t *payload_data, size_t len) {
 	memcpy(&send_pkt[11], payload_data, len);
 	uint32_t crc32 = Calculate_CRC32(&hcrc, send_pkt, len + 15);
 	memcpy(&send_pkt[len + 11], &crc32, 4);
+	taskENTER_CRITICAL();
 	uint8_t res = LoRa_transmit(&LoRa_Handle, send_pkt, len + 15, 1000);
+	taskEXIT_CRITICAL();
 	if (res) {
 		// TODO: Handle LoRa timeout
 		printf("LoRa timed out");
@@ -1912,15 +1909,6 @@ void Sample_Sensors(void *argument) {
 			// Check that buffer length has not exceeded max flash
 			// sector size + number of bytes to be written + sensor
 			// write header and crc bytes
-#ifdef BINARY_LOGGING
-			if (sensor_data_stream_offset <= _MAX_SS - 16 - STREAM_METADATA_SIZE) {
-				uint32_t timestamp = micros();
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &timestamp, sizeof(timestamp));
-				sensor_data_stream_offset += sizeof(timestamp);
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &bmx055_data.accel, 3 * sizeof(float));
-				sensor_data_stream_offset += 3 * sizeof(float);
-			}
-#endif
 
 		}
 		// Check BMX055_Gyro
@@ -1936,15 +1924,6 @@ void Sample_Sensors(void *argument) {
 			BMX055_readCompensatedMag(&bmx055, bmx055_data.mag);
 
 			// Write sensor data to stream buffer
-#ifdef BINARY_LOGGING
-			if (sensor_data_stream_offset <= _MAX_SS - 16 - STREAM_METADATA_SIZE) {
-				uint32_t timestamp = micros();
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &timestamp, sizeof(timestamp));
-				sensor_data_stream_offset += sizeof(timestamp);
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &bmx055_data.gyro, 3 * sizeof(float));
-				sensor_data_stream_offset += 3 * sizeof(float);
-			}
-#endif
 		}
 		// Check BMX055_Mag
 		if (sensor_type & BMX055_Mag) {
@@ -1954,15 +1933,6 @@ void Sample_Sensors(void *argument) {
 			bmx055_data.mag_updated = true;
 
 			// Write sensor data to stream buffer
-#ifdef BINARY_LOGGING
-			if (sensor_data_stream_offset <= _MAX_SS - 16 - STREAM_METADATA_SIZE) {
-				uint32_t timestamp = micros();
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &timestamp, sizeof(timestamp));
-				sensor_data_stream_offset += sizeof(timestamp);
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &bmx055_data.mag, 3 * sizeof(float));
-				sensor_data_stream_offset += 3 * sizeof(float);
-			}
-#endif
 		}
 		// Check asm330_Accel
 		if (sensor_type & ASM330_Accel) {
@@ -1974,15 +1944,6 @@ void Sample_Sensors(void *argument) {
 			asm330_data.accel_updated = true;
 
 			// Write sensor data to stream buffer
-#ifdef BINARY_LOGGING
-			if (sensor_data_stream_offset <= _MAX_SS - 16 - STREAM_METADATA_SIZE) {
-				uint32_t timestamp = micros();
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &timestamp, sizeof(timestamp));
-				sensor_data_stream_offset += sizeof(timestamp);
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &asm330_data.accel, 3 * sizeof(float));
-				sensor_data_stream_offset += 3 * sizeof(float);
-			}
-#endif
 		}
 		// Check asm330_Gyro
 		if (sensor_type & ASM330_Gyro) {
@@ -1994,15 +1955,6 @@ void Sample_Sensors(void *argument) {
 			asm330_data.gyro_updated = true;
 
 			// Write sensor data to stream buffer
-#ifdef BINARY_LOGGING
-			if (sensor_data_stream_offset <= _MAX_SS - 16 - STREAM_METADATA_SIZE) {
-				uint32_t timestamp = micros();
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &timestamp, sizeof(timestamp));
-				sensor_data_stream_offset += sizeof(timestamp);
-				memcpy(&sensor_data_stream_buffer[sensor_data_stream_offset], &asm330_data.gyro, 3 * sizeof(float));
-				sensor_data_stream_offset += 3 * sizeof(float);
-			}
-#endif
 		}
 		// Check MAX_10S_GPS
 		if (sensor_type & MAX_10S_GPS) {
@@ -2010,7 +1962,6 @@ void Sample_Sensors(void *argument) {
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, MAX_10S_GPS);
 			parse_nmea(gps_data.gps_buffer);
 		}
-#endif
 	}
 	/* USER CODE END Sample_Sensors */
 }
@@ -2137,7 +2088,6 @@ void Data_Logging(void *argument) {
 
 			// Append data to buffer arrays
 			if (prefill_counter < max_batch_size) {
-#ifdef CSV_LOGGING
 				if (accel_sz <= sizeof(accel_buffer) - accel_write_sz) {
 					accel_write_sz = snprintf((char*) &accel_buffer[accel_sz], sizeof(accel_buffer) - accel_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2]);
 					// Store previous write size
@@ -2195,17 +2145,10 @@ void Data_Logging(void *argument) {
 					} else
 						prefill_counter = max_batch_size;
 				}
-#endif
-#ifdef BINARY_LOGGING
-				if(sensor_data_stream_offset >= __MAX_SS - 16) {
-					// Stream buffer is full
-					prefill_counter = max_batch_size;
-				}
-#endif
+
 				prefill_counter++;
 			} else {
 				// Write batches of data
-#ifdef CSV_LOGGING
 				// Write accel data
 				SD_write_accel_batch(accel_buffer, accel_sz);
 
@@ -2221,27 +2164,11 @@ void Data_Logging(void *argument) {
 				// Write gps data
 				SD_write_gps_batch(gps_buffer, gps_sz);
 
-				// Write sys_state data
-				SD_write_sys_state_batch(sys_state_buffer, sys_state_sz);
-
 				// Write ekf data
 				SD_write_ekf_batch(ekf_buffer, ekf_sz);
 
 				// Write internal state machine data
 				SD_write_internal_state_machine_batch(internal_sm_buffer, internal_sm_sz);
-#endif
-#ifdef BINARY_LOGGING
-				// Write sensor data stream
-				uint8_t write_pkt[__MAX_SS];
-				// Add header
-				uint8_t header[] = { 0xAA, 0xAA, 0xAA, 0xAA };
-				memcpy(write_pkt, header, 4);
-				// Calculate crc32
-				uint32_t crc32 = Calculate_CRC32(&hcrc, send_pkt, len + 15);
-				SD_write_sensor_data_binary_stream(sensor_data_stream_buffer. sizeof(sensor_data_stream_buffer));
-				memset(sensor_data_stream_buffer, 0x00, sizeof(sensor_data_stream_buffer));
-				sensor_data_stream_offset = 0;
-#endif
 
 				prefill_counter = 0;
 				accel_sz = 0;
@@ -2385,6 +2312,7 @@ void sysMonitor(void *argument) {
 	while (!sensors_initialised) {
 		osDelay(1000);
 	}
+	uint32_t reset_lora_loop_counter = 0;
 	/* Infinite loop */
 	for (;;) {
 		// Check if flags have been set by read operation
@@ -2419,6 +2347,8 @@ void sysMonitor(void *argument) {
 		bmx055_data.mag_updated = false;
 		asm330_data.accel_updated = false;
 		asm330_data.gyro_updated = false;
+
+
 		osDelay(100);
 	}
 	/* USER CODE END sysMonitor */

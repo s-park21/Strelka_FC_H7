@@ -29,3 +29,6 @@ void debug_print(char *msg, size_t len, enum debug_level dbl) {
 #endif
 }
 
+void store_sys_log(char *log_msg, size_t len) {
+	SD_write_sys_logs_batch(log_msg, len);
+}

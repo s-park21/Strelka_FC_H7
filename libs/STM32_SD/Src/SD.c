@@ -13,7 +13,7 @@ char baroDir[] = "baro.csv";
 char accelDir[] = "accel.csv";
 char gyroDir[] = "gyro.csv";
 char magDir[] = "mag.csv";
-char systemStateDir[] = "sys.csv";
+char systemLogsDir[] = "logs.csv";
 char ekfDir[] = "ekf.csv";
 char streamDir[] = "stream.dat";
 char internal_smDir[] = "int_sm.csv";
@@ -746,18 +746,18 @@ void SD_write_gps_batch(uint8_t *gps_buffer, size_t gps_sz)
 	}
 }
 
-void SD_write_sys_state_batch(uint8_t *sys_state_buffer, size_t sys_state_sz)
+void SD_write_sys_logs_batch(uint8_t *sys_logs_buffer, size_t sys_logs_sz)
 {
 	uint32_t byteswritten;
 	// Write sys_state data
 	char sys_fname[32];
-	sprintf(sys_fname, "%s/%s", directory_name, systemStateDir);
+	sprintf(sys_fname, "%s/%s", directory_name, systemLogsDir);
 	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
 		return res;
 	}
-	res = f_write(&SDFile, sys_state_buffer, sys_state_sz, (void *)&byteswritten);
+	res = f_write(&SDFile, sys_logs_buffer, sys_logs_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
