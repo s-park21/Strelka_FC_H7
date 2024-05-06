@@ -33,6 +33,7 @@ typedef struct {
 	float pressure;
 	float temperature;
 	float altitude;
+	bool baro_updated;
 }MS5611_Data_Handle;
 
 typedef struct {

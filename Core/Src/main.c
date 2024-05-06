@@ -351,6 +351,10 @@ int main(void) {
 		Non_Blocking_Error_Handler();
 	}
 
+	// Init system logging data structures
+	sys_logs_pos_idx = 0;
+	sys_logs_rdy = false;
+
 	/* USER CODE END 2 */
 
 	/* Init scheduler */
@@ -1884,6 +1888,8 @@ void Sample_Sensors(void *argument) {
 	}
 	sensors_initialised = true;
 
+	store_sys_log("Sensors initialised");
+
 	sensor_data_stream_offset = 0;
 	memset(sensor_data_stream_buffer, 0x00, sizeof(sensor_data_stream_buffer));		// Reset buffer to all zeros
 
@@ -1962,6 +1968,7 @@ void Sample_Sensors(void *argument) {
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, MAX_10S_GPS);
 			parse_nmea(gps_data.gps_buffer);
 		}
+#endif
 	}
 	/* USER CODE END Sample_Sensors */
 }
@@ -2026,6 +2033,7 @@ void Sample_Baro(void *argument) {
 		if (temperature_reading > -273) {
 			ms5611_data.temperature = temperature_reading;
 		}
+		ms5611_data.baro_updated = true;
 		osSemaphoreRelease(SPI4SemaphoreHandle);
 #endif
 		osDelay(1);
@@ -2180,6 +2188,9 @@ void Data_Logging(void *argument) {
 				ekf_sz = 0;
 				internal_sm_sz = 0;
 			}
+			if(sys_logs_rdy) {
+				write_sys_logs();
+			}
 		} else {
 			osDelay(1000);
 		}
@@ -2318,28 +2329,40 @@ void sysMonitor(void *argument) {
 		// Check if flags have been set by read operation
 		if (bmx055_data.accel_updated == false) {
 			bmx055.acc_good = false;
+			store_sys_log("BMX055 accel failure");
 		} else {
 			bmx055.acc_good = true;
 		}
 		if (bmx055_data.gyro_updated == false) {
 			bmx055.gyro_good = false;
+			store_sys_log("BMX055 gyro failure");
 		} else {
 			bmx055.gyro_good = true;
 		}
 		if (bmx055_data.mag_updated == false) {
 			bmx055.mag_good = false;
+			store_sys_log("BMX055 mag failure");
 		} else {
 			bmx055.mag_good = true;
 		}
 		if (asm330_data.accel_updated == false) {
 			asm330.acc_good = false;
+			store_sys_log("ASM330 accel failure");
 		} else {
 			asm330.acc_good = true;
 		}
 		if (asm330_data.gyro_updated == false) {
 			asm330.gyro_good = false;
+			store_sys_log("ASM330 gyro failure");
 		} else {
 			asm330.gyro_good = true;
+		}
+		if(ms5611_data.baro_updated == false) {
+			ms5611.baro_good = false;
+			store_sys_log("MS5611 baro failure");
+		}
+		else {
+			ms5611.baro_good = true;
 		}
 		// Reset flags
 		bmx055_data.accel_updated = false;
@@ -2347,7 +2370,7 @@ void sysMonitor(void *argument) {
 		bmx055_data.mag_updated = false;
 		asm330_data.accel_updated = false;
 		asm330_data.gyro_updated = false;
-
+		ms5611_data.baro_updated = false;
 
 		osDelay(100);
 	}

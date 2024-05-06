@@ -9,16 +9,16 @@
 #define INC_DEBUG_H_
 
 #include <stdint.h>
-#include "stm32h7xx_hal.h"
+#include "main.h"
 #include "SD.h"
 //#include "usbd_cdc_if.h"
 
 #define DEBUG_ENABLED			// Uncomment to enable debugging
 //#define USB_LOGGING				// Comment out DEBUG_ENABLED and uncomment USB_LOGGING to enable USB logging
 
-char sys_logs_buff[512];		// Buffer to hold the system logs that need to be written to SD
-uint32_t sys_logs_pos_idx;		// Varible to hold the current offset position within the buffer
-bool sys_logs_rdy;				// Flag to indicate when sys logs are ready to be written to SD
+extern char sys_logs_buff[128];		// Buffer to hold the system logs that need to be written to SD
+extern uint32_t sys_logs_pos_idx;		// Varible to hold the current offset position within the buffer
+extern bool sys_logs_rdy;				// Flag to indicate when sys logs are ready to be written to SD
 
 int _write(int file, char *ptr, int len);
 
@@ -34,6 +34,7 @@ extern enum debug_level dbg_level;	// Globally defined debug print verbosity, de
 extern enum debug_level dbg;		// Variable used to pass into debug_print() when its called to define print statement verbosity, define in main.c
 
 void debug_print(char *msg, size_t len, enum debug_level dbl);
-void store_sys_log(char *log_msg, size_t len);
+void store_sys_log(char *log_msg);
+void write_sys_logs();
 
 #endif /* INC_DEBUG_H_ */

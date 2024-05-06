@@ -198,7 +198,7 @@ FRESULT SD_write_headers()
 	}
 	osDelay(10);
 
-	sprintf(fname, "%s/%s", directory_name, systemStateDir);
+	sprintf(fname, "%s/%s", directory_name, systemLogsDir);
 	res = f_open(&SDFile, fname, FA_OPEN_APPEND | FA_WRITE);
 	osDelay(10);
 	if (res != FR_OK)
@@ -209,7 +209,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char sys_header[] = "timestamp(uS), flight state, drogue ematch status, main ematch status, launch time (mS), Launch altitude (m), Burnout time (ms), Burnout altitude (m), drogue deploy time (ms), drogue deploy altitude(m), main deploy time(ms), main deploy altitude(m), landing time(ms), landing altitude(m), battery voltage (V)\n";
+	char sys_header[] = "SYSTEM LOGS\n";
 	res = f_write(&SDFile, sys_header, sizeof(sys_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -474,33 +474,33 @@ FRESULT SD_write_GPS_data(uint32_t time_uS, int time_hours, int time_minutes, in
 	return res;
 }
 
-FRESULT SD_write_system_state_data(uint32_t time_uS, uint8_t flight_state, uint8_t drogue_ematch_status, uint8_t main_ematch_status, uint32_t launch_time, uint32_t drogue_deploy_time, float drogue_deploy_altitude, uint32_t main_deploy_time, float main_deploy_altitude, uint32_t landing_time, float landing_altitude, float battery_voltage)
-{
-	uint8_t write_data[_MAX_SS];
-	uint32_t byteswritten;
-	char sys_fname[32];
-	sprintf(sys_fname, "%s/%s", directory_name, systemStateDir);
-	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
-
-	if (res != FR_OK)
-	{
-		return res;
-	}
-	// Write to the text file
-	size_t sz = snprintf((char *)write_data, sizeof(write_data), "%.0lu,%d,%d,%d,%.0lu,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%0.2f,\n", time_uS, flight_state, drogue_ematch_status, main_ematch_status, launch_time, drogue_deploy_time, drogue_deploy_altitude, main_deploy_time, main_deploy_altitude, landing_time, landing_altitude, battery_voltage);
-	res = f_write(&SDFile, write_data, sz, (void *)&byteswritten);
-
-	if ((byteswritten == 0) || (res != FR_OK))
-	{
-		return res;
-	}
-	else
-	{
-
-		f_close(&SDFile);
-	}
-	return res;
-}
+//FRESULT SD_write_system_state_data(uint32_t time_uS, uint8_t flight_state, uint8_t drogue_ematch_status, uint8_t main_ematch_status, uint32_t launch_time, uint32_t drogue_deploy_time, float drogue_deploy_altitude, uint32_t main_deploy_time, float main_deploy_altitude, uint32_t landing_time, float landing_altitude, float battery_voltage)
+//{
+//	uint8_t write_data[_MAX_SS];
+//	uint32_t byteswritten;
+//	char sys_fname[32];
+//	sprintf(sys_fname, "%s/%s", directory_name, systemStateDir);
+//	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
+//
+//	if (res != FR_OK)
+//	{
+//		return res;
+//	}
+//	// Write to the text file
+//	size_t sz = snprintf((char *)write_data, sizeof(write_data), "%.0lu,%d,%d,%d,%.0lu,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%0.2f,\n", time_uS, flight_state, drogue_ematch_status, main_ematch_status, launch_time, drogue_deploy_time, drogue_deploy_altitude, main_deploy_time, main_deploy_altitude, landing_time, landing_altitude, battery_voltage);
+//	res = f_write(&SDFile, write_data, sz, (void *)&byteswritten);
+//
+//	if ((byteswritten == 0) || (res != FR_OK))
+//	{
+//		return res;
+//	}
+//	else
+//	{
+//
+//		f_close(&SDFile);
+//	}
+//	return res;
+//}
 
 FRESULT SD_write_ekf_data(uint32_t time_uS, float qu1, float qu2, float qu3, float qu4)
 {
