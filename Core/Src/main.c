@@ -83,19 +83,19 @@ MDMA_HandleTypeDef hmdma_mdma_channel0_sdmmc1_end_data_0;
 MDMA_LinkNodeTypeDef node_mdma_channel0_sdmmc1_command_end_1;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-uint32_t defaultTaskBuffer[2048];
+uint32_t defaultTaskBuffer[512];
 osStaticThreadDef_t defaultTaskControlBlock;
 const osThreadAttr_t defaultTask_attributes = { .name = "defaultTask", .cb_mem = &defaultTaskControlBlock, .cb_size = sizeof(defaultTaskControlBlock), .stack_mem = &defaultTaskBuffer[0], .stack_size = sizeof(defaultTaskBuffer), .priority = (osPriority_t) osPriorityLow, };
 /* Definitions for State_Machine_T */
 osThreadId_t State_Machine_THandle;
-uint32_t myTask02Buffer[2048];
+uint32_t myTask02Buffer[4096];
 osStaticThreadDef_t myTask02ControlBlock;
 const osThreadAttr_t State_Machine_T_attributes = { .name = "State_Machine_T", .cb_mem = &myTask02ControlBlock, .cb_size = sizeof(myTask02ControlBlock), .stack_mem = &myTask02Buffer[0], .stack_size = sizeof(myTask02Buffer), .priority = (osPriority_t) osPriorityAboveNormal, };
 /* Definitions for Sample_Sensors_ */
 osThreadId_t Sample_Sensors_Handle;
 uint32_t Sample_Sensors_Buffer[2048];
 osStaticThreadDef_t Sample_Sensors_ControlBlock;
-const osThreadAttr_t Sample_Sensors__attributes = { .name = "Sample_Sensors_", .cb_mem = &Sample_Sensors_ControlBlock, .cb_size = sizeof(Sample_Sensors_ControlBlock), .stack_mem = &Sample_Sensors_Buffer[0], .stack_size = sizeof(Sample_Sensors_Buffer), .priority = (osPriority_t) osPriorityHigh, };
+const osThreadAttr_t Sample_Sensors__attributes = { .name = "Sample_Sensors_", .cb_mem = &Sample_Sensors_ControlBlock, .cb_size = sizeof(Sample_Sensors_ControlBlock), .stack_mem = &Sample_Sensors_Buffer[0], .stack_size = sizeof(Sample_Sensors_Buffer), .priority = (osPriority_t) osPriorityRealtime, };
 /* Definitions for LoRa_Task */
 osThreadId_t LoRa_TaskHandle;
 uint32_t LoRa_TaskBuffer[2048];
@@ -105,12 +105,12 @@ const osThreadAttr_t LoRa_Task_attributes = { .name = "LoRa_Task", .cb_mem = &Lo
 osThreadId_t Sample_Baro_TasHandle;
 uint32_t Sample_Baro_TasBuffer[2048];
 osStaticThreadDef_t Sample_Baro_TasControlBlock;
-const osThreadAttr_t Sample_Baro_Tas_attributes = { .name = "Sample_Baro_Tas", .cb_mem = &Sample_Baro_TasControlBlock, .cb_size = sizeof(Sample_Baro_TasControlBlock), .stack_mem = &Sample_Baro_TasBuffer[0], .stack_size = sizeof(Sample_Baro_TasBuffer), .priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t Sample_Baro_Tas_attributes = { .name = "Sample_Baro_Tas", .cb_mem = &Sample_Baro_TasControlBlock, .cb_size = sizeof(Sample_Baro_TasControlBlock), .stack_mem = &Sample_Baro_TasBuffer[0], .stack_size = sizeof(Sample_Baro_TasBuffer), .priority = (osPriority_t) osPriorityRealtime, };
 /* Definitions for Data_Logging_Ta */
 osThreadId_t Data_Logging_TaHandle;
 uint32_t Data_Logging_TaBuffer[2048];
 osStaticThreadDef_t Data_Logging_TaControlBlock;
-const osThreadAttr_t Data_Logging_Ta_attributes = { .name = "Data_Logging_Ta", .cb_mem = &Data_Logging_TaControlBlock, .cb_size = sizeof(Data_Logging_TaControlBlock), .stack_mem = &Data_Logging_TaBuffer[0], .stack_size = sizeof(Data_Logging_TaBuffer), .priority = (osPriority_t) osPriorityRealtime, };
+const osThreadAttr_t Data_Logging_Ta_attributes = { .name = "Data_Logging_Ta", .cb_mem = &Data_Logging_TaControlBlock, .cb_size = sizeof(Data_Logging_TaControlBlock), .stack_mem = &Data_Logging_TaBuffer[0], .stack_size = sizeof(Data_Logging_TaBuffer), .priority = (osPriority_t) osPriorityHigh, };
 /* Definitions for GPS_Tracker_Tas */
 osThreadId_t GPS_Tracker_TasHandle;
 uint32_t GPS_Tracker_TasBuffer[2048];
@@ -138,10 +138,6 @@ const osSemaphoreAttr_t SPI2Semaphore_attributes = { .name = "SPI2Semaphore", .c
 osSemaphoreId_t SPI1SemaphoreHandle;
 osStaticSemaphoreDef_t SPI1SemaphoreControlBlock;
 const osSemaphoreAttr_t SPI1Semaphore_attributes = { .name = "SPI1Semaphore", .cb_mem = &SPI1SemaphoreControlBlock, .cb_size = sizeof(SPI1SemaphoreControlBlock), };
-/* Definitions for SPI4Semaphore */
-osSemaphoreId_t SPI4SemaphoreHandle;
-osStaticSemaphoreDef_t SPI4SemaphoreControlBlock;
-const osSemaphoreAttr_t SPI4Semaphore_attributes = { .name = "SPI4Semaphore", .cb_mem = &SPI4SemaphoreControlBlock, .cb_size = sizeof(SPI4SemaphoreControlBlock), };
 /* Definitions for SDMMCSemaphore */
 osSemaphoreId_t SDMMCSemaphoreHandle;
 osStaticSemaphoreDef_t SDMMCSemaphoreControlBlock;
@@ -200,7 +196,7 @@ GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
-SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 100, .flash_logging_enabled = true };
+SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
@@ -374,9 +370,6 @@ int main(void) {
 	/* creation of SPI1Semaphore */
 	SPI1SemaphoreHandle = osSemaphoreNew(1, 0, &SPI1Semaphore_attributes);
 
-	/* creation of SPI4Semaphore */
-	SPI4SemaphoreHandle = osSemaphoreNew(1, 0, &SPI4Semaphore_attributes);
-
 	/* creation of SDMMCSemaphore */
 	SDMMCSemaphoreHandle = osSemaphoreNew(1, 0, &SDMMCSemaphore_attributes);
 
@@ -384,7 +377,19 @@ int main(void) {
 	ADC1SemaphoreHandle = osSemaphoreNew(1, 0, &ADC1Semaphore_attributes);
 
 	/* USER CODE BEGIN RTOS_SEMAPHORES */
-	/* add semaphores, ... */
+	deploymentPinsSemaphoreHandle = osSemaphoreNew(1, 1, &deploymentPinsSemaphore_attributes);
+
+	/* creation of SPI2Semaphore */
+	SPI2SemaphoreHandle = osSemaphoreNew(1, 1, &SPI2Semaphore_attributes);
+
+	/* creation of SPI1Semaphore */
+	SPI1SemaphoreHandle = osSemaphoreNew(1, 1, &SPI1Semaphore_attributes);
+
+	/* creation of SDMMCSemaphore */
+	SDMMCSemaphoreHandle = osSemaphoreNew(1, 1, &SDMMCSemaphore_attributes);
+
+	/* creation of ADC1Semaphore */
+	ADC1SemaphoreHandle = osSemaphoreNew(1, 1, &ADC1Semaphore_attributes);
 	/* USER CODE END RTOS_SEMAPHORES */
 
 	/* USER CODE BEGIN RTOS_TIMERS */
@@ -1418,22 +1423,27 @@ uint32_t Calculate_CRC32(CRC_HandleTypeDef *hcrc, uint8_t *payload_data, size_t 
 void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 	switch (identifier) {
 	case BAT_VOL_REQ:
-		osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-		float batVol = calculateBatteryVoltage(&hadc1);
-		osSemaphoreRelease(ADC1SemaphoreHandle);
+		float batVol;
+		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+			batVol = calculateBatteryVoltage(&hadc1);
+			osSemaphoreRelease(ADC1SemaphoreHandle);
+		}
 		bat_vol_res bat_vol_pkt = { .battery_voltage = batVol };
 		send_rf_packet(BAT_VOL_RES, (uint8_t*) &bat_vol_pkt, sizeof(bat_vol_pkt));
 		break;
 	case CONTINUITY_REQ:
 		continuity_res cont_pkt;
 		// Read drogue continuity
-		osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
-		osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-		system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
-		// Read main continuity
-		system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
-		osSemaphoreRelease(ADC1SemaphoreHandle);
-		osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+		if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
+			if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+				system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
+				// Read main continuity
+				system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
+				osSemaphoreRelease(ADC1SemaphoreHandle);
+			}
+			osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+		}
+
 		cont_pkt.drogue_ematch_state = system_state.drogue_ematch_state;
 		cont_pkt.main_ematch_state = system_state.main_ematch_state;
 		send_rf_packet(CONTINUITY_REQ, (uint8_t*) &cont_pkt, sizeof(cont_pkt));
@@ -1441,9 +1451,10 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 	case FIRE_DROGUE_REQ:
 		fire_drogue_res fire_drogue_pkt;
 		if (system_state.drogue_arm_state == ARMED) {
-			osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
-			deploy_drogue_parachute(DROGUE_H_GPIO_Port, DROGUE_L_GPIO_Port, DROGUE_H_Pin, DROGUE_L_Pin);
-			osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
+				deploy_drogue_parachute(DROGUE_H_GPIO_Port, DROGUE_L_GPIO_Port, DROGUE_H_Pin, DROGUE_L_Pin);
+				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+			}
 			fire_drogue_pkt.fire_drogue_result = 1;
 		} else {
 			fire_drogue_pkt.fire_drogue_result = 0;
@@ -1453,9 +1464,10 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 	case FIRE_MAIN_REQ:
 		fire_main_res fire_main_pkt;
 		if (system_state.main_arm_state == ARMED) {
-			osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
-			deploy_main_parachute(MAIN_H_GPIO_Port, MAIN_L_GPIO_Port, MAIN_H_Pin, MAIN_L_Pin);
-			osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
+				deploy_main_parachute(MAIN_H_GPIO_Port, MAIN_L_GPIO_Port, MAIN_H_Pin, MAIN_L_Pin);
+				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+			}
 			fire_main_pkt.fire_main_result = 1;
 		} else {
 			fire_main_pkt.fire_main_result = 0;
@@ -1571,9 +1583,10 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 		case 0:
 			float available_flash_memory_kB;
 			SD_get_free_space_kB(&available_flash_memory_kB);
-			osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-			float batVol = calculateBatteryVoltage(&hadc1);
-			osSemaphoreRelease(ADC1SemaphoreHandle);
+			if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+				float batVol = calculateBatteryVoltage(&hadc1);
+				osSemaphoreRelease(ADC1SemaphoreHandle);
+			}
 			system_state_packet_type_0_res response_packet = { .acc1X = bmx055_data.accel[0], .acc1Y = bmx055_data.accel[1], .acc1Z = bmx055_data.accel[2], .acc1_good = bmx055.acc_good, .acc2X = asm330_data.accel[0], .acc2Y = asm330_data.accel[0], .acc2Z = asm330_data.accel[0], .acc2_good = asm330.acc_good, .arm_drogue_state = system_state.drogue_arm_state, .arm_main_state = system_state.main_arm_state, .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .baro1_good = ms5611.baro_good, .baro1_pressure = ms5611_data.pressure, .baro1_temperature = ms5611_data.temperature, .battery_voltage = batVol, .drogue_ematch_state = system_state.drogue_ematch_state, .flash_good = SD_card.flash_good, .flash_write_speed = SD_card.log_frequency, .gps1_good = gps.gps_good, .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .gps_tracking_chirp_frequency = gps_tracker.chirp_frequency, .gps_tracking_enabled = gps_tracker.tracking_enabled, .gyro1X = bmx055_data.gyro[0], .gyro1Y = bmx055_data.gyro[1], .gyro1Z = bmx055_data.gyro[2], .gyro1_good = bmx055.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], .gyro2_good = asm330.gyro_good, .heart_beat_chirp_frequency = 0 /*TODO*/, .heart_beat_enabled = 0 /*TODO*/, .mag1X = bmx055_data.mag[0], .mag1Y = bmx055_data.mag[1], .mag1Z = bmx055_data.mag[2], .mag1_good = bmx055.mag_good, .main_ematch_state = system_state.main_ematch_state, .stream_packet_type_enabled = packet_streamer.stream_packet_type_enabled, .packet_stream_frequency = packet_streamer.packet_stream_frequency, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .flash_logging_enabled = SD_card.flash_logging_enabled, .flight_state = system_state.flight_state, };
 			send_rf_packet(SYSTEM_STATE_PACKET_TYPE_0_RES, (uint8_t*) &response_packet, sizeof(response_packet));
 			break;
@@ -1633,13 +1646,18 @@ void StartDefaultTask(void *argument) {
 	/* Infinite loop */
 	for (;;) {
 		osDelay(1000);
-		osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
-		osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-		system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
-		// Read main continuity
-		system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
-		osSemaphoreRelease(ADC1SemaphoreHandle);
-		osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+		if (system_state.flight_state == IDLE_ON_PAD) {
+			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
+				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+					system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
+					// Read main continuity
+					system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
+					osSemaphoreRelease(ADC1SemaphoreHandle);
+				}
+				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+			}
+		}
+
 	}
 	/* USER CODE END 5 */
 }
@@ -1677,14 +1695,17 @@ void State_Machine(void *argument) {
 	if (init_state_controller(ms5611_data.altitude)) {
 		// Handle error state
 	}
+	osStatus_t res = osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
+	if (res == osOK) {
+		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+			system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
+			// Read main continuity
+			system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
+			osSemaphoreRelease(ADC1SemaphoreHandle);
+		}
+		osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+	}
 
-	osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
-	osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-	system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
-	// Read main continuity
-	system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
-	osSemaphoreRelease(ADC1SemaphoreHandle);
-	osSemaphoreRelease(deploymentPinsSemaphoreHandle);
 	// Report E-match state
 	// TODO report ematch state over buzzer
 
@@ -1726,6 +1747,10 @@ void State_Machine(void *argument) {
 			}
 			bool launch_detected = detect_launch_accel(ax, ay, az, angle_from_vertical, millis());
 			if (launch_detected) {
+				system_state.starting_altitude = ms5611_data.altitude;
+				char log_msg[64];
+				size_t sz = snprintf(log_msg, sizeof(log_msg), "Launch detected. Starting altitude: %f", system_state.starting_altitude);
+				store_sys_log(log_msg);
 				break;
 			}
 		}
@@ -1766,6 +1791,7 @@ void State_Machine(void *argument) {
 	 * 2. The magnitude of filtered acceleration read is below 2g.
 	 */
 	bool apogee_detected = false;
+	bool burnout_msg_logged = false;
 	while (!apogee_detected) {
 		if (asm330.acc_good) {
 			ax = asm330_data.accel[0];
@@ -1779,18 +1805,29 @@ void State_Machine(void *argument) {
 		float altitude = ms5611_data.altitude;
 		timestamp_ms = millis();
 		// Detect burnout state
-		detect_burnout_accel(ax, ay, az, altitude, timestamp_ms);
+		if (detect_burnout_accel(ax, ay, az, altitude, timestamp_ms)) {
+			if (!burnout_msg_logged) {
+				burnout_msg_logged = true;
+				char log_msg[64];
+				size_t sz = snprintf(log_msg, sizeof(log_msg), "Burnout detected. Altitude: %f", ms5611_data.altitude);
+				store_sys_log(log_msg);
+			}
+		}
 		// Detect if apogee has been reached
 		apogee_detected = detect_apogee(ax, ay, az, altitude, timestamp_ms);
 
-		// Delay 1ms
-		osDelay(1);
+		// Delay 10ms
+		osDelay(10);
 	}
 
 	// Register apogee
-	osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
+	res = osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	deploy_drogue_parachute(DROGUE_H_GPIO_Port, DROGUE_L_GPIO_Port, DROGUE_H_Pin, DROGUE_L_Pin);
 	osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+	char log_msg[64];
+	size_t sz = snprintf(log_msg, sizeof(log_msg), "Apogee detected. Altitude: %f", ms5611_data.altitude);
+	store_sys_log(log_msg);
+
 	/*
 	 * Main deploy altitude detection
 	 * The vehicle will detect the main deploy altitude when the following is satisfied:
@@ -1807,6 +1844,9 @@ void State_Machine(void *argument) {
 	osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	deploy_main_parachute(MAIN_H_GPIO_Port, MAIN_L_GPIO_Port, MAIN_H_Pin, MAIN_L_Pin);
 	osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+	sz = snprintf(log_msg, sizeof(log_msg), "Main deploy altitude detected. Altitude: %f", ms5611_data.altitude);
+	store_sys_log(log_msg);
+
 	/*
 	 * Landing detection:
 	 * Landing will be detected when any of the following conditions are satisfied:
@@ -1820,6 +1860,9 @@ void State_Machine(void *argument) {
 		landing_detected = detect_landing(ms5611_data.altitude, timestamp_ms);
 	}
 
+	sz = snprintf(log_msg, sizeof(log_msg), "Landing detected. Altitude: %f", ms5611_data.altitude);
+	store_sys_log(log_msg);
+
 	// Disarm all pyro channels
 	system_state.drogue_arm_state = DISARMED;
 	system_state.main_arm_state = DISARMED;
@@ -1827,14 +1870,16 @@ void State_Machine(void *argument) {
 	/* Infinite loop */
 	for (;;) {
 		// Check battery voltage
-		osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-		float battery_voltage = calculateBatteryVoltage(&hadc1);
-		osSemaphoreRelease(ADC1SemaphoreHandle);
+		float battery_voltage;
+		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+			battery_voltage = calculateBatteryVoltage(&hadc1);
+			osSemaphoreRelease(ADC1SemaphoreHandle);
+		}
 		if (battery_voltage <= 2.8) {
 			// Battery voltage is low, disable flight computer and sleep. <- Perhaps consider filtering this as well
 			// TODO
 		}
-		osDelay(1000);
+		osDelay(5000);
 	}
 	/* USER CODE END State_Machine */
 }
@@ -1852,20 +1897,21 @@ void Sample_Sensors(void *argument) {
 
 	/* Init BMX055 */
 	if (!BMX055_init(&bmx055)) {
-		//		debug_print("BMX055 FAILED\r\n", sizeof("BMX055 FAILED\r\n"), dbg =
-		//				CRITICAL);
-		printf("Error");
+		store_sys_log("Error: BMX055 failed to initialise");
+		Non_Blocking_Error_Handler();
 	}
 	// Configure interrupts
 	BMX055_setInterrupts(&bmx055);
 
 	/* Init ASM330 */
 	if (ASM330_Init(&asm330)) {
+		store_sys_log("Error: ASM330 failed to initialise");
 		Non_Blocking_Error_Handler();
 	}
 
 	/* Init MS5611 */
 	if (!MS5611_init(&ms5611, osr)) {
+		store_sys_log("Error: MS5611 failed to initialise");
 		Non_Blocking_Error_Handler();
 	}
 
@@ -1883,6 +1929,7 @@ void Sample_Sensors(void *argument) {
 	// Check e-match continuities
 	// Check critical sensors
 	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false) {
+		store_sys_log("Error: Sensors failed to initialise");
 		// Alert critical sensor error code
 		Error_Handler();
 	}
@@ -1986,6 +2033,7 @@ void LoRa_Radio(void *argument) {
 	LoRa_reset(&LoRa_Handle);
 	LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
 	if (LoRa_init(&LoRa_Handle) != LORA_OK) {
+		store_sys_log("Error: RFM95 failed to initialise");
 		Non_Blocking_Error_Handler();
 	}
 	LoRa_startReceiving(&LoRa_Handle);
@@ -2023,7 +2071,6 @@ void Sample_Baro(void *argument) {
 	for (;;) {
 #ifndef RUN_HITL
 		// Read from baro
-		osSemaphoreAcquire(SPI4SemaphoreHandle, 2000);
 		float pressure_reading = (float) MS5611_readPressure(&ms5611, 1);
 		if (pressure_reading > 0) {
 			ms5611_data.pressure = pressure_reading;
@@ -2034,7 +2081,6 @@ void Sample_Baro(void *argument) {
 			ms5611_data.temperature = temperature_reading;
 		}
 		ms5611_data.baro_updated = true;
-		osSemaphoreRelease(SPI4SemaphoreHandle);
 #endif
 		osDelay(1);
 	}
@@ -2145,9 +2191,11 @@ void Data_Logging(void *argument) {
 					} else
 						prefill_counter = max_batch_size;
 					if (sys_state_sz <= sizeof(sys_state_buffer) - sys_state_write_sz) {
-						osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-						float batVol = calculateBatteryVoltage(&hadc1);
-						osSemaphoreRelease(ADC1SemaphoreHandle);
+						float batVol;
+						if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+							batVol = calculateBatteryVoltage(&hadc1);
+							osSemaphoreRelease(ADC1SemaphoreHandle);
+						}
 						sys_state_write_sz = snprintf((char*) &sys_state_buffer[sys_state_sz], sizeof(sys_state_buffer) - sys_state_sz, "%.0lu,%d,%d,%d,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%0.2f\r\n", micros(), system_state.flight_state, system_state.drogue_ematch_state, system_state.main_ematch_state, system_state.launch_time, system_state.starting_altitude, system_state.burnout_time, system_state.burnout_altitude, system_state.drogue_deploy_time, system_state.drogue_deploy_altitude, system_state.main_deploy_time, system_state.main_deploy_altitude, system_state.landing_time, system_state.landing_altitude, batVol);
 						sys_state_sz += sys_state_write_sz;
 					} else
@@ -2188,7 +2236,7 @@ void Data_Logging(void *argument) {
 				ekf_sz = 0;
 				internal_sm_sz = 0;
 			}
-			if(sys_logs_rdy) {
+			if (sys_logs_rdy) {
 				write_sys_logs();
 			}
 		} else {
@@ -2232,10 +2280,13 @@ void GPS_Tracker(void *argument) {
 			// Check again if state changed during delay
 			if (packet_streamer.stream_packet_type_enabled == 0) {
 				float available_flash_memory_kB;
+				float batVol;
 				SD_get_free_space_kB(&available_flash_memory_kB);
-				osSemaphoreAcquire(ADC1SemaphoreHandle, 2000);
-				float batVol = calculateBatteryVoltage(&hadc1);
-				osSemaphoreRelease(ADC1SemaphoreHandle);
+				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+					batVol = calculateBatteryVoltage(&hadc1);
+					osSemaphoreRelease(ADC1SemaphoreHandle);
+				}
+
 				stream_packet_type_0 pkt_0 = { .ambient_temperature = ms5611_data.temperature, .gyro1X = asm330_data.gyro[0], .gyro1Y = asm330_data.gyro[1], .gyro1Z = asm330_data.gyro[2], .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .battery_voltage = batVol, .flight_state = system_state.flight_state, .gps1_altitude = minmea_tofloat(&gps.gga_frame.altitude), .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .acc1X = asm330_data.accel[0], .acc1Y = asm330_data.accel[1], .acc1Z = asm330_data.accel[2], .velX = 0, .velY = 0, .velZ = 0, .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .quaternion_q1 = ekf.qu_data[0], .quaternion_q2 = ekf.qu_data[1], .quaternion_q3 = ekf.qu_data[2], .quaternion_q4 = ekf.qu_data[3], .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .gps1_good = gps.gps_good };
 				send_rf_packet(STREAM_PACKET_TYPE_0, (uint8_t*) &pkt_0, sizeof(pkt_0));
 			}
@@ -2357,11 +2408,10 @@ void sysMonitor(void *argument) {
 		} else {
 			asm330.gyro_good = true;
 		}
-		if(ms5611_data.baro_updated == false) {
+		if (ms5611_data.baro_updated == false) {
 			ms5611.baro_good = false;
 			store_sys_log("MS5611 baro failure");
-		}
-		else {
+		} else {
 			ms5611.baro_good = true;
 		}
 		// Reset flags
