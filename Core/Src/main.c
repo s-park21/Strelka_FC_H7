@@ -2292,6 +2292,7 @@ void GPS_Tracker(void *argument) {
 			}
 		} else {
 			osDelay(500);
+
 		}
 	}
 	/* USER CODE END GPS_Tracker */
@@ -2354,6 +2355,7 @@ void Extended_Kalman_Filter(void *argument) {
 			EKF_Update(&ekf, ax, ay, az, 10.0, 0, 0);
 			update_index = 0;
 		}
+		EKF_Normalise(&ekf);
 		update_index++;
 
 		osDelay(10);

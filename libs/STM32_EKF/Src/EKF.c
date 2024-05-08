@@ -207,16 +207,10 @@ void EKF_Update(EKF *ekf, float ax_mps2, float ay_mps2, float az_mps2, float m, 
 	// Add current state vector to result in temp_matrix and store in current state vector
 	result = arm_mat_add_f32(&ekf->qu, &temp_matrix4x1, &temp_matrix4x1_2);
 
-	// Normalise quaterion
-	float q0 = mat_4x1_2_data[0];
-	float q1 = mat_4x1_2_data[1];
-	float q2 = mat_4x1_2_data[2];
-	float q3 = mat_4x1_2_data[3];
-	float d = sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-	ekf->qu_data[0] = q0 / d;
-	ekf->qu_data[1] = q1 / d;
-	ekf->qu_data[2] = q2 / d;
-	ekf->qu_data[3] = q3 / d;
+	ekf->qu_data[0] = mat_4x1_2_data[0];
+	ekf->qu_data[1] = mat_4x1_2_data[1];
+	ekf->qu_data[2] = mat_4x1_2_data[2];
+	ekf->qu_data[3] = mat_4x1_2_data[3];
 
 	/******** Update P Matrix *********/
 	// Create identity matrix
@@ -272,4 +266,17 @@ void EP2Euler321(float *qu, float *euler) {
 	euler[0] = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3);
 	euler[1] = asin(-2 * (q1 * q3 - q0 * q2));
 	euler[2] = atan2(2 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3);
+}
+
+void EKF_Normalise(EKF *ekf) {
+	// Normalise quaterion
+	float q0 = ekf->qu_data[0];
+	float q1 = ekf->qu_data[1];
+	float q2 = ekf->qu_data[2];
+	float q3 = ekf->qu_data[3];
+	float d = sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+	ekf->qu_data[0] = q0 / d;
+	ekf->qu_data[1] = q1 / d;
+	ekf->qu_data[2] = q2 / d;
+	ekf->qu_data[3] = q3 / d;
 }
