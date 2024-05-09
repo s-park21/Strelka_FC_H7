@@ -43,6 +43,11 @@ typedef struct {
 	bool gyro_updated;
 }ASM330_Data_Handle;
 
+typedef struct {
+	float accel[3];
+	bool accel_updated;
+}ADXL375_Data_Handle;
+
 /* A hardware specific data type containing state information about on board sensors */
 typedef struct {
 	bool *asm330_acc_good;

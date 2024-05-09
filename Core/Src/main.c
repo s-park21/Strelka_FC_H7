@@ -191,6 +191,7 @@ uint32_t device_hardware_id;
 BMX055_Data_Handle bmx055_data = { 0 };
 MS5611_Data_Handle ms5611_data = { 0 };
 ASM330_Data_Handle asm330_data = { 0 };
+ADXL375_Data_Handle adxl375_data = { 0 };
 GPS_Data_Handle gps_data = { 0 };
 GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 LoRa LoRa_Handle;
