@@ -29,6 +29,7 @@
 #include "Sensors.h"
 #include "LoRa.h"
 #include "ASM330.h"
+#include "ADXL375.h"
 #include "debug.h"
 #include "gps.h"
 #include "State_Machine.h"
@@ -199,6 +200,7 @@ MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .ba
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
 SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
+ADXL375_t adxl375 = { .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz);
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
 GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
