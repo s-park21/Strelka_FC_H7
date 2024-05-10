@@ -200,7 +200,7 @@ MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .ba
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
 SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
-ADXL375_t adxl375 = { acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
+ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
 GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
@@ -1922,7 +1922,7 @@ void Sample_Sensors(void *argument) {
 	float offsetX = 0;
 	float offsetY = 0;
 	float offsetZ = 0;
-	if (ADXL375_init(&adxl, offsetX, offsetY, offsetZ)) {
+	if (ADXL375_init(&adxl375, offsetX, offsetY, offsetZ)) {
 		store_sys_log("Error: ADXL375 failed to initialise");
 		Non_Blocking_Error_Handler();
 	}
@@ -2083,7 +2083,7 @@ void Sample_Baro(void *argument) {
 	for (;;) {
 #ifndef RUN_HITL
 		// Read from ADXL375
-		if(ADXL375_readSensor(&adxl, ADXL375_data.accel)) {
+		if(ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
 			printf("Error");
 			// TODO: Handle error
 		}
