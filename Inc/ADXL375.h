@@ -2,15 +2,17 @@
  * ADXL375.h
  *
  *  Created on: 10 May 2024
- *      Author   Bryan Siepert and K.Townsend (Adafruit Industries)
- *      Modified by: Angus McLennan
- *      This
+ *  Author   Bryan Siepert and K.Townsend (Adafruit Industries)
+ *  Modified by: Angus McLennan
+ *
  */
 
 #ifndef INC_ADXL375_H_
 #define INC_ADXL375_H_
 
 #include "main.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 #define DEVICE_ID 0x00
 #define THRESH_SHOCK 0x1D
@@ -49,6 +51,7 @@ typedef struct
     GPIO_TypeDef *CS_port;
     uint16_t CS_pin;
     ADXL375_bandwidth_t sample_rate;
+    bool acc_good;
 } ADXL375_t;
 
 typedef enum
@@ -77,8 +80,6 @@ typedef enum
     ADXL375_RATE_0_20Hz = 0b0001, // BW 0.10 Idd 35
     ADXL375_RATE_0_10Hz = 0b0000, // BW 0.05 Idd 35
 } ADXL375_bandwidth_t;
-
-#define ADXL375_MG2G_MULTIPLIER (0.049) /**< 49mg per lsb */
 
 ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float32_t offsetX, float32_t offsetY, float32_t offsetZ);
 ADXL375_state_t ADXL375_readSensor(ADXL375_t *adxl, float *accel);
