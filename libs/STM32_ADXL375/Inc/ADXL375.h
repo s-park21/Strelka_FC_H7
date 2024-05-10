@@ -43,14 +43,6 @@
 
 #define ADXL375_DEVICE_ID 0xE5
 
-typedef struct
-{
-    SPI_HandleTypeDef *hspi;
-    GPIO_TypeDef *CS_port;
-    uint16_t CS_pin;
-    ADXL375_bandwidth_t sample_rate;
-} ADXL375_t;
-
 typedef enum
 {
     ADXL375_OK,
@@ -78,11 +70,19 @@ typedef enum
     ADXL375_RATE_0_10Hz = 0b0000, // BW 0.05 Idd 35
 } ADXL375_bandwidth_t;
 
+typedef struct
+{
+    SPI_HandleTypeDef *hspi;
+    GPIO_TypeDef *CS_port;
+    uint16_t CS_pin;
+    ADXL375_bandwidth_t sample_rate;
+} ADXL375_t;
+
 #define ADXL375_MG2G_MULTIPLIER (0.049) /**< 49mg per lsb */
 
-ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float32_t offsetX, float32_t offsetY, float32_t offsetZ);
+ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, float offsetZ);
 ADXL375_state_t ADXL375_readSensor(ADXL375_t *adxl, float *accel);
-void ADXL375_writeSPI(BMX055_Handle *bmx055, uint8_t register_addr, uint8_t *data, size_t len);
-void ADXL375_readSPI(BMX055_Handle *bmx055, uint8_t register_addr, uint8_t *data, size_t len);
+void ADXL375_writeSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size_t len);
+void ADXL375_readSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size_t len);
 
 #endif // INC_ADXL375_H_

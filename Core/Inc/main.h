@@ -71,6 +71,8 @@ void Non_Blocking_Error_Handler();
 #define GPS_PPS_EXTI_IRQn EXTI0_IRQn
 #define GPS_RST_Pin GPIO_PIN_1
 #define GPS_RST_GPIO_Port GPIOA
+#define SPI1_NSS_Pin GPIO_PIN_4
+#define SPI1_NSS_GPIO_Port GPIOA
 #define BATT_SENSE_Pin GPIO_PIN_4
 #define BATT_SENSE_GPIO_Port GPIOC
 #define DROGUE_CONT_Pin GPIO_PIN_5

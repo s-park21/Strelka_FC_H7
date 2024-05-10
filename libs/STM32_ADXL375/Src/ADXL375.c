@@ -10,13 +10,14 @@
     float32_t offsetZ: Two's complement offset measured in units of G (9.81m/s2)
     returns: ADXL375_state_t
 */
-ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float32_t offsetX, float32_t offsetY, float32_t offsetZ)
+ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, float offsetZ)
 {
     // Read device ID
     uint8_t dev_id;
     ADXL375_readSPI(adxl, (uint8_t)DEVICE_ID, &dev_id, sizeof(dev_id));
     if (dev_id != ADXL375_DEVICE_ID)
     {
+    	adxl->acc_good = false;
         return ADXL375_NOT_FOUND;
     }
 
@@ -53,6 +54,7 @@ ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float32_t offsetX, float32_t offse
     data = 0b10000000;
     ADXL375_writeSPI(adxl, (uint8_t)INT_MAP, &data, sizeof(data));
 
+    adxl->acc_good = true;
     return ADXL375_OK;
 }
 
@@ -101,10 +103,10 @@ ADXL375_state_t ADXL375_readSensor(ADXL375_t *adxl, float *accel)
  */
 void ADXL375_writeSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size_t len)
 {
-    HAL_GPIO_WritePin(adxl->CS_Port, adxl->CS_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_RESET);
     HAL_SPI_Transmit(adxl->hspi, &register_addr, 1, 1000);
     HAL_SPI_Transmit(adxl->hspi, data, len, 1000);
-    HAL_GPIO_WritePin(adxl->CS_Port, adxl->CS_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
 }
 
 /**
@@ -120,9 +122,9 @@ void ADXL375_readSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size
     register_addr = register_addr | 0x80;
     uint8_t packet[20];
 
-    HAL_GPIO_WritePin(adxl->CS_Port, adxl->CS_Pin, GPIO_PIN_RESET);
-    HAL_SPI_TransmitReceive(bmx055->hspi, &register_addr, packet, len + 1, 1000);
-    HAL_GPIO_WritePin(adxl->CS_Port, adxl->CS_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_RESET);
+    HAL_SPI_TransmitReceive(adxl->hspi, &register_addr, packet, len + 1, 1000);
+    HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
 
     // Copy data into "data" spot in memory
     memcpy(data, &packet[1], len);
