@@ -10,7 +10,12 @@
 extern micros();
 
 int _write(int file, char *ptr, int len) {
-//    CDC_Transmit_FS((uint8_t*) ptr, len); return len;
+	int DataIdx;
+
+	for(DataIdx = 0; DataIdx < len; DataIdx++) {
+		ITM_SendChar(*ptr++);
+	}
+	return len;
 }
 
 /* Debug print function */

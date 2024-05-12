@@ -110,6 +110,8 @@ typedef struct
 
 	uint32_t launch_time;
 	float starting_altitude;
+	float starting_pressure;
+	float starting_temperature;
 	uint32_t burnout_time;
 	float burnout_altitude;
 	uint32_t drogue_deploy_time;
@@ -152,7 +154,7 @@ extern ExpLowPassFilter_t landing_lp_filter;
  1 -> Error
  0 -> Success
  */
-uint8_t init_state_controller(float starting_altitude);
+uint8_t init_state_controller(float starting_altitude, float starting_pressure, float starting_temperature);
 
 /*
  Detects launch using an accelerometer by comparing the magnitude of the acceleration vector to a predefined threshold

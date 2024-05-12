@@ -66,6 +66,10 @@ typedef struct {
 #define GPS_Buff_Size 1024
 typedef struct {
 	uint8_t gps_buffer[GPS_Buff_Size];
+	float initial_latitude;
+	float initial_longitude;
+	float initial_altitude;
+	bool gps_first_fix_logged;
 }GPS_Data_Handle;
 
 void init_adc(ADC_HandleTypeDef* hadc);

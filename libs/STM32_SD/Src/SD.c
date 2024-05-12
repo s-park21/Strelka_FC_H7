@@ -660,13 +660,13 @@ void SD_write_accel_batch(uint8_t *accel_buffer, size_t accel_sz)
 	FRESULT res = f_open(&SDFile, accel_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, accel_buffer, accel_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -679,13 +679,13 @@ void SD_write_gyro_batch(uint8_t *gyro_buffer, size_t gyro_sz)
 	FRESULT res = f_open(&SDFile, gyro_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, gyro_buffer, gyro_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -698,13 +698,13 @@ void SD_write_mag_batch(uint8_t *mag_buffer, size_t mag_sz)
 	FRESULT res = f_open(&SDFile, mag_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, mag_buffer, mag_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -717,13 +717,13 @@ void SD_write_baro_batch(uint8_t *baro_buffer, size_t baro_sz)
 	FRESULT res = f_open(&SDFile, baro_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, baro_buffer, baro_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -736,13 +736,13 @@ void SD_write_gps_batch(uint8_t *gps_buffer, size_t gps_sz)
 	FRESULT res = f_open(&SDFile, gps_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, gps_buffer, gps_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -755,13 +755,13 @@ void SD_write_sys_logs_batch(uint8_t *sys_logs_buffer, size_t sys_logs_sz)
 	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, sys_logs_buffer, sys_logs_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -774,13 +774,13 @@ void SD_write_ekf_batch(uint8_t *ekf_buffer, size_t ekf_sz)
 	FRESULT res = f_open(&SDFile, ekf_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, ekf_buffer, ekf_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
 
@@ -793,12 +793,12 @@ void SD_write_internal_state_machine_batch(uint8_t *internal_sm_buffer, size_t i
 	FRESULT res = f_open(&SDFile, internal_sm_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
-		return res;
+		return;
 	}
 	res = f_write(&SDFile, internal_sm_buffer, internal_sm_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
-		return res;
+		return;
 	}
 }
