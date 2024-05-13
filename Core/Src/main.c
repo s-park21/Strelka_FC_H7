@@ -362,6 +362,7 @@ int main(void) {
 	create_diagonal_matrix(ekf.R_accel_data, 3, 3, accel_sensor_std);
 	ekf.R_baro_data[0] = baro_sensor_std;
 	create_diagonal_matrix(ekf.R_gps_data, 3, 3, gps_sensor_std);
+	R_gps_data[8] = 10E1;
 	create_diagonal_matrix(ekf.R_mag_data, 3, 3, mag_sensor_std);
 
 	HAL_GPIO_WritePin(SPI2_NSS5_GPIO_Port, SPI2_NSS5_Pin, GPIO_PIN_SET);
@@ -2361,12 +2362,18 @@ void Extended_Kalman_Filter(void *argument) {
 	while (!sensors_initialised || system_state.starting_pressure == 0) {
 		osDelay(10);
 	}
+//	float asm330_acc_offsets[3];
+//	float bmx055_acc_offsets[3];
+//	calibrate_accelerometer(asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], asm330_acc_offsets);
+//	calibrate_accelerometer(bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2], bmx055_acc_offsets);
+
 	uint32_t currentSampleTime = 0;
 	uint32_t lastSampleTime = 0;
 	uint32_t correct_freq = 1;
 	uint32_t update_index = 0;
 	float p, q, r;
 	float ax, ay, az;
+	uint32_t ekf_start_time = millis();
 	EKF_fs_Status_t res = EKF_fs_init(&ekf);
 	if (res) {
 		// TODO: Log error
@@ -2419,7 +2426,7 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Run accelerometer predict step
-		if (asm330.acc_good || bmx055.acc_good) {
+		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
 			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
 			if (res) {
 				printf("Log error here");
@@ -2428,6 +2435,7 @@ void Extended_Kalman_Filter(void *argument) {
 
 		// If not in flight, update orientation estmate with gravity vector
 		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
+			// Delay start time so that orientation estimate converges
 			res = EKF_fs_update_accel(&ekf, ax, ay, az);
 			if (res) {
 				printf("Log error here");
@@ -2435,28 +2443,28 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Update state with barometer
-//		if (ms5611.baro_good) {
-//			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature, system_state.starting_altitude);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
-
-		// Update with GPS if GPS has fix and rocket is not on ascent
-//		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT) {
-//			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
-
-		// Update state with magnetometer
-		if (bmx055.mag_good) {
-			res = EKF_fs_update_mag(&ekf, bmx055_data.mag[0], bmx055_data.mag[1], bmx055_data.mag[2]);
+		if (ms5611.baro_good) {
+			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
 			if (res) {
 				printf("Log error here");
 			}
 		}
+
+		// Update with GPS if GPS has fix and rocket is not on ascent
+		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT) {
+			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
+			if (res) {
+				printf("Log error here");
+			}
+		}
+
+		// Update state with magnetometer
+//		if (bmx055.mag_good && millis() - ekf_start_time >= 3000) {
+//			res = EKF_fs_update_mag(&ekf, bmx055_data.mag[0], bmx055_data.mag[1], bmx055_data.mag[2]);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Convert quaterion state to euler angles
 		float euler[3];

@@ -51,9 +51,9 @@ EKF_fs_Status_t EKF_fs_predict_accel(EKF_fs_t *ekf, float ax, float ay, float az
 	// Make prediction step by incrementing linear position and velocity using measured acceleration via Euler integration
 	for (int i = 0; i < 3; i++) {
 		// Predict position
-		ekf->state_vec_data[i + 4] += dt * ekf->state_vec_data[i + 7] + 0.5 * dt * dt * acc_vec_data[i];
+		ekf->state_vec_data[i + 4] += dt * ekf->state_vec_data[i + 7] + 0.5 * dt * dt * acc_vec_world_data[i];
 		// Predict velocity
-		ekf->state_vec_data[i + 7] += dt * acc_vec_data[i];
+		ekf->state_vec_data[i + 7] += dt * acc_vec_world_data[i];
 	}
 
 	// Generate Jacobian matrix of accelerometer prediction
@@ -230,22 +230,22 @@ EKF_fs_Status_t EKF_fs_update_accel(EKF_fs_t *ekf, float ax, float ay, float az)
 	return EKF_fs_update_P_matrix(ekf, &acc_jacob, &K);
 }
 
-EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure, float initial_pressure, float initial_temperature, float initial_altitude) {
+EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure_Pa, float initial_pressure_Pa, float initial_temperature_K, float initial_altitude_m) {
 	// Temporary storage buffers
 	float tmp_10x1_data[10];
 	arm_matrix_instance_f32 tmp_10x1;
 	arm_mat_init_f32(&tmp_10x1, STATE_VEC_DIMS, 1, tmp_10x1_data);
 
 	// Calculate T0
-	float T0 = initial_temperature - LAPSE_RATE * initial_altitude;
+	float T0 = initial_temperature_K - LAPSE_RATE * initial_altitude_m;
 
 	// Calculate predicted height given current state
 	float delta_d = ekf->state_vec_data[6];
-	float h_pred = pow(1 - delta_d * LAPSE_RATE / T0, -GRAVITY_MPS / (R_gas * LAPSE_RATE)) * initial_pressure;
+	float h_pred = pow(1 - delta_d * LAPSE_RATE / T0, -GRAVITY_MPS / (R_gas * LAPSE_RATE)) * initial_pressure_Pa;
 
 	// Calculate barometer jacobian matrix
 	float baro_jacob_data[STATE_VEC_DIMS] = { 0 };
-	baro_jacob_data[6] = (initial_pressure * GRAVITY_MPS) / pow(R_gas * (1 - (LAPSE_RATE * delta_d) / (initial_temperature - initial_altitude * LAPSE_RATE)), (GRAVITY_MPS / (LAPSE_RATE * R_gas) + 1)) * (initial_temperature - initial_altitude * LAPSE_RATE);
+	baro_jacob_data[6] = (initial_pressure_Pa * GRAVITY_MPS) / (R_gas * pow((1 - (LAPSE_RATE * delta_d) / (initial_temperature_K - initial_altitude_m * LAPSE_RATE)), (GRAVITY_MPS / (LAPSE_RATE * R_gas) + 1)) * (initial_temperature_K - initial_altitude_m * LAPSE_RATE));
 	arm_matrix_instance_f32 baro_jacob;
 	arm_mat_init_f32(&baro_jacob, 1, STATE_VEC_DIMS, baro_jacob_data);
 
@@ -257,7 +257,7 @@ EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure, float 
 		return res;
 
 	// Calculate difference between measured altitude and predicted altitude
-	float diff = current_pressure - h_pred;
+	float diff = current_pressure_Pa - h_pred;
 
 	// Multiply K by the difference
 	arm_status resl = arm_mat_scale_f32(&K, diff, &tmp_10x1);
@@ -935,4 +935,20 @@ void rearrange_matrix_row_form(float *in, float *out, int in_rows, int in_cols) 
 			out[i * in_rows + j] = in[j * in_cols + i];
 		}
 	}
+}
+
+/*
+ * Function: calibrate_accelerometer
+ * Calculates the offsets of a stationary accelerometer
+ * float ax: Acceleration reading in X
+ * float ay: Acceleration reading in Y
+ * float az: Acceleration reading in Z
+ * float *offxyz (output): Acceleration offset result in X, Y and Z as a vector
+ */
+void calibrate_accelerometer(float ax, float ay, float az, float *offxyz) {
+	float acc_vec[] = {ax, ay, az};
+	EKF_fs_normalise_vector(acc_vec, 3);
+	offxyz[0] = ax - acc_vec[0];
+	offxyz[1] = ay - acc_vec[1];
+	offxyz[2] = az - acc_vec[2];
 }

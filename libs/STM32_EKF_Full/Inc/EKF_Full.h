@@ -66,13 +66,13 @@ EKF_fs_Status_t EKF_fs_init(EKF_fs_t *ekf); // TODO: Create instances of all arm
 EKF_fs_Status_t EKF_fs_predict_accel(EKF_fs_t *ekf, float ax, float ay, float az, float dt);
 EKF_fs_Status_t EKF_fs_predict_gyro(EKF_fs_t *ekf, float p, float q, float r, float dt);
 EKF_fs_Status_t EKF_fs_update_accel(EKF_fs_t *ekf, float ax, float ay, float az);
-EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure, float initial_pressure, float initial_temperature, float initial_altitude);
+EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure_Pa, float initial_pressure_Pa, float initial_temperature_K, float initial_altitude_m);
 EKF_fs_Status_t EKF_fs_update_gps(EKF_fs_t *ekf, float current_latitude, float current_longitude, float current_altitude, float initial_latitude, float initial_longitude, float initial_altitude);
 EKF_fs_Status_t EKF_fs_update_mag(EKF_fs_t *ekf, float mx, float my, float mz);
 EKF_fs_Status_t EKF_fs_calculate_K_matrix(EKF_fs_t *ekf, arm_matrix_instance_f32 *J, arm_matrix_instance_f32 *K, arm_matrix_instance_f32 *R);
 EKF_fs_Status_t EKF_fs_update_P_matrix(EKF_fs_t *ekf, arm_matrix_instance_f32 *J, arm_matrix_instance_f32 *K);
 
-void EKF_fs_normalise_vector(float *vector, size_t len) ;
+void EKF_fs_normalise_vector(float *vector, size_t len);
 void get_gyro_jacob(float w1, float w2, float w3, float qw, float qx, float qy, float qz, float dt, float jacob_w_pred[100]);
 void get_mag_jacob(float qw, float qx, float qy, float qz, float jacob_mag[30]);
 void get_acc_jacob(float qw, float qx, float qy, float qz, float a1, float a2, float a3, float dt, float jacob_a_pred[100]);
@@ -80,5 +80,5 @@ void EKF_fs_EP2C(float qw, float qx, float qy, float qz, float C[9]);
 void BmatEP(float qw, float qx, float qy, float qz, float B[12]);
 void create_diagonal_matrix(float *output_matrix, int rows, int cols, float init_diag);
 void EKF_fs_EP2Euler321(float *qu, float *euler);
-
+void calibrate_accelerometer(float ax, float ay, float az, float *offxyz);
 #endif // INC_EKF_FULL_H_
