@@ -362,7 +362,7 @@ int main(void) {
 	create_diagonal_matrix(ekf.R_accel_data, 3, 3, accel_sensor_std);
 	ekf.R_baro_data[0] = baro_sensor_std;
 	create_diagonal_matrix(ekf.R_gps_data, 3, 3, gps_sensor_std);
-	R_gps_data[8] = 10E1;
+	ekf.R_gps_data[8] = 10E1;
 	create_diagonal_matrix(ekf.R_mag_data, 3, 3, mag_sensor_std);
 
 	HAL_GPIO_WritePin(SPI2_NSS5_GPIO_Port, SPI2_NSS5_Pin, GPIO_PIN_SET);
@@ -2451,7 +2451,7 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT) {
+		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
 			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
 			if (res) {
 				printf("Log error here");
