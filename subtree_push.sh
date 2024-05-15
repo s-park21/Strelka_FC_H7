@@ -20,4 +20,4 @@ git subtree push --prefix=libs/state_machine git@github.com:Hover-Disaster/Strel
 git subtree push --prefix=libs/CHIRP git@github.com:s-park21/CHIRP.git main
 git subtree push --prefix=libs/STM32_EKF git@github.com:Hover-Disaster/STM32_EKF.git main
 git subtree push --prefix=libs/STM32_ADXL375 git@github.com:Hover-Disaster/STM32_ADXL375.git main
-git subtree push --prefix=libs/STM32_ADXL375 git@github.com:Hover-Disaster/STM32_EKF_Full.git main
+git subtree push --prefix=libs/STM32_EKF_Full git@github.com:Hover-Disaster/STM32_EKF_Full.git main
