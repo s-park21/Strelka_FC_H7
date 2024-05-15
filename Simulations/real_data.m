@@ -15,7 +15,7 @@ gyro_sensor_ratio = 1.0; % 1.0 = Use all of Gyro 1
 
 
 %% Loading Data
-data_str = "./Test_data/Strelka L1 Flight Data 04.05.24/DATA004";
+data_str = "./Test_data/WalkAround";
 gyro_data = readtable(data_str+ '/GYRO.CSV');
 accel_data = readtable(data_str+'/ACCEL.CSV');
 baro_data = readtable(data_str+'/BARO.CSV');
@@ -23,7 +23,7 @@ mag_data = readtable(data_str+'/MAG.CSV');
 gps_data = readtable(data_str+'/GPS.CSV');
 
 all_timestamps = sort([baro_data.timestamp_uS_; accel_data.timestamp_uS_; gyro_data.timestamp_uS_;mag_data.timestamp_uS_;gps_data.Var1]);
-all_timestamps = all_timestamps(all_timestamps>455*10^6 & all_timestamps<489*10^6);
+% all_timestamps = all_timestamps(all_timestamps>150*10^6 & all_timestamps<300*10^6);
 
 %% Initialising KF
 % State Variable
@@ -51,6 +51,7 @@ R_accel = eye(3)*10^-4;
 R_baro = eye(1)*10^7;
 R_mag = eye(3)*10^-1;
 R_gps = eye(3)*10^-9;
+R_gps(3,3) = 10^1;
 
 % Defining Anchor Point
 gps_not_nan = gps_data{gps_data.Var5 == 1, 2:4}; 
@@ -238,6 +239,7 @@ end
 
 % YPR
 ypr = zeros(3,length(all_timestamps));
+rpy = zeros(3,length(all_timestamps));
 body_velocities = zeros(3,length(all_timestamps));
 quat_norm = zeros(1,length(all_timestamps));
 approx_mach = zeros(1,length(all_timestamps));
@@ -245,7 +247,8 @@ approx_AoA = zeros(1,length(all_timestamps));
 for i = 1:length(x)
     % YPR
     quat = x(1:4,i)/norm(x(1:4,i));
-    ypr(:,i) = EP2Euler321(quat');
+    ypr(:,i) = quat2angle(quat');
+    rpy(:,i) = quat2angle(quat',"XYZ");
 
     % Body Velocities
     % rot_mat = EP2C(x(1:4,i)/norm(x(1:4,i)));
@@ -273,6 +276,7 @@ end
 %% Fix Time Stamps (mainly for plots)
 time = all_timestamps/10^6;
 ypr = ypr(:,1:length(time));
+rpy = rpy(:,1:length(time));
 body_velocities = body_velocities(:,1:length(time));
 x = x(:,1:length(time));
 quat_norm = quat_norm(:,1:length(time));
@@ -280,19 +284,31 @@ approx_mach = approx_mach(1:length(time));
 approx_AoA = approx_AoA(1:length(time));
 launched = ~not_launched;
 
-%% Export for Vis
+% %% Export for Vis
 % indices = time > 0;
 % export_time = time(indices);
 % export_time = export_time - export_time(1);
 % export_x = x(:,indices);
-% export_x(5:6,:) = 0;
-% export_x(7,:) = export_x(7,:) - export_x(7,1);
-% export_ypr = ypr(:,indices)*180/pi;
-% T = table(export_time, export_ypr(1,:)', export_ypr(2,:)', export_ypr(3,:)', export_x(5,:)', export_x(6,:)', export_x(7,:)', ...
-%     'VariableNames', {'time', 'yaw', 'pitch', 'roll', 'north', 'east', 'down'});
-
+% export_rpy = real(rpy(:,indices))*180/pi;
+% 
+% export_dt = 0.05;
+% new_time = (0:dt:max(export_time))';
+% 
+% T = table(export_time, export_rpy(1,:)', real(export_rpy(2,:)'), export_rpy(3,:)', export_x(5,:)', export_x(6,:)', abs(export_x(7,:)'), ...
+%     'VariableNames', {'time', 'yaw', 'pitch', 'roll', 'displacement_north', 'displacement_east', 'altitude_geometric'});
+% 
+% % Adding index column
+% index_column = (0:numel(export_time)-1)'; % Creating index column
+% T = addvars(T, index_column, 'Before', 1); % Adding index column to the table
+% dt = [diff(export_time);0.0001]; % Calculating time differences
+% T = addvars(T, dt, 'After', 'time'); % Adding dt column to the table
+% 
+% % Adding geodetic_latitude column
+% geodetic_lat = repmat(-36.4823, size(export_time)); % Constant value for all rows
+% T = addvars(T, geodetic_lat, 'After', 'altitude_geometric'); % Adding geodetic_latitude column to the table
+% 
 % % Writing the table to a CSV file
-% writetable(T, 'visualisation.csv');
+% writetable(T, 'baby_pulsar_ekf.csv');
 
 %% Plot
 
