@@ -93,7 +93,11 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
+<<<<<<< HEAD
 	uint8_t accel_header[] = "Accelerometer data:\nAccel 1: ASM330\nAccel 2: BMX055\n Accel 3: ADXL375\n\ntimestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g),acc3X(g),acc3Y(g),acc3Z(g)\n";
+=======
+	uint8_t accel_header[] = "timestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g)\n";
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	res = f_write(&SDFile, accel_header, sizeof(accel_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -122,7 +126,11 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
+<<<<<<< HEAD
 	char gyro_header[] = "Gyroscope data:\nGyro1: ASM330\nGyro2: BMX055\n\ntimestamp(uS),gyro1X(rad/s),gyro1Y(rad/s),gyro1Z(rad/s),gyro2X(rad/s),gyro2Y(rad/s),gyro2Z(rad/s)\n";
+=======
+	char gyro_header[] = "timestamp(uS),gyro1X(rad/s),gyro1Y(rad/s),gyro1Z(rad/s),gyro2X(rad/s),gyro2Y(rad/s),gyro2Z(rad/s)\n";
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	res = f_write(&SDFile, gyro_header, sizeof(gyro_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -151,7 +159,11 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
+<<<<<<< HEAD
 	char mag_header[] = "Magnetometer data:\nMag: BMX055\n\ntimestamp(uS),magX(uT),magY(uT),magZ(uT)\n";
+=======
+	char mag_header[] = "timestamp(uS),magX(uT),magY(uT),magZ(uT)\n";
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	res = f_write(&SDFile, mag_header, sizeof(mag_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -180,7 +192,11 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
+<<<<<<< HEAD
 	char baro_header[] = "Barometer data:\nBaro: MS5611\n\ntimestamp(uS),altitude(m),pressure(Pa),temperature(degC)\n";
+=======
+	char baro_header[] = "timestamp(uS),altitude(m),pressure(Pa),temperature(degC)\n";
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	res = f_write(&SDFile, baro_header, sizeof(baro_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -209,12 +225,49 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
+<<<<<<< HEAD
 	char sys_header[128] = "SYSTEM LOGS\nStrelka Flight Computer\n";
 #ifdef GIT_INFO_PRESENT
 	snprintf(sys_header, sizeof(sys_header), "%s%s\n", sys_header, GIT_INFO);
 #endif
 
 	res = f_write(&SDFile, sys_header, sizeof(sys_header), (void *)&byteswritten);
+
+=======
+	char sys_header[] = "timestamp(uS), flight state, drogue ematch status, main ematch status, launch time (mS), Launch altitude (m), Burnout time (ms), Burnout altitude (m), drogue deploy time (ms), drogue deploy altitude(m), main deploy time(ms), main deploy altitude(m), landing time(ms), landing altitude(m), battery voltage (V)\n";
+	res = f_write(&SDFile, sys_header, sizeof(sys_header), (void *)&byteswritten);
+
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
+	if ((byteswritten == 0) || (res != FR_OK))
+	{
+		if (res == FR_LOCKED)
+		{
+			return res;
+		}
+		Non_Blocking_Error_Handler();
+	}
+	else
+	{
+<<<<<<< HEAD
+=======
+
+		f_close(&SDFile);
+	}
+	osDelay(10);
+
+	sprintf(fname, "%s/%s", directory_name, ekfDir);
+	res = f_open(&SDFile, fname, FA_OPEN_APPEND | FA_WRITE);
+	osDelay(10);
+	if (res != FR_OK)
+	{
+		if (res == FR_LOCKED)
+		{
+			return res;
+		}
+		Non_Blocking_Error_Handler();
+	}
+	char ekf_header[] = "timstamp (us), q0(w), q1(x), q2(y), q3(z), update enabled\n";
+	res = f_write(&SDFile, ekf_header, sizeof(ekf_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
@@ -226,6 +279,37 @@ FRESULT SD_write_headers()
 	}
 	else
 	{
+
+		f_close(&SDFile);
+	}
+	osDelay(10);
+
+	sprintf(fname, "%s/%s", directory_name, internal_smDir);
+	res = f_open(&SDFile, fname, FA_OPEN_APPEND | FA_WRITE);
+	osDelay(10);
+	if (res != FR_OK)
+	{
+		if (res == FR_LOCKED)
+		{
+			return res;
+		}
+		Non_Blocking_Error_Handler();
+	}
+
+	char internal_sm_header[] = "Timestamp (uS), Angle from vertical (rad), Filtered launch detection acceleration (g), Filtered burnout detection x acceleration (g), Filtered apogee detection altitude (m), Filtered apogee detection vertical velocity (m/s), Filtered apogee detection acceleration (g), Unfiltered main detection agl altitude (m), Filtered landing detection vertical velocity (m), Up axis index\n";
+	res = f_write(&SDFile, internal_sm_header, sizeof(internal_sm_header), (void *)&byteswritten);
+
+	if ((byteswritten == 0) || (res != FR_OK))
+	{
+		if (res == FR_LOCKED)
+		{
+			return res;
+		}
+		Non_Blocking_Error_Handler();
+	}
+	else
+	{
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 
 		f_close(&SDFile);
 	}
@@ -507,6 +591,7 @@ FRESULT SD_write_GPS_data(uint32_t time_uS, int time_hours, int time_minutes, in
 	return res;
 }
 
+<<<<<<< HEAD
 //FRESULT SD_write_system_state_data(uint32_t time_uS, uint8_t flight_state, uint8_t drogue_ematch_status, uint8_t main_ematch_status, uint32_t launch_time, uint32_t drogue_deploy_time, float drogue_deploy_altitude, uint32_t main_deploy_time, float main_deploy_altitude, uint32_t landing_time, float landing_altitude, float battery_voltage)
 //{
 //	uint8_t write_data[_MAX_SS];
@@ -535,6 +620,36 @@ FRESULT SD_write_GPS_data(uint32_t time_uS, int time_hours, int time_minutes, in
 //	return res;
 //}
 
+=======
+FRESULT SD_write_system_state_data(uint32_t time_uS, uint8_t flight_state, uint8_t drogue_ematch_status, uint8_t main_ematch_status, uint32_t launch_time, uint32_t drogue_deploy_time, float drogue_deploy_altitude, uint32_t main_deploy_time, float main_deploy_altitude, uint32_t landing_time, float landing_altitude, float battery_voltage)
+{
+	uint8_t write_data[_MAX_SS];
+	uint32_t byteswritten;
+	char sys_fname[32];
+	sprintf(sys_fname, "%s/%s", directory_name, systemStateDir);
+	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
+
+	if (res != FR_OK)
+	{
+		return res;
+	}
+	// Write to the text file
+	size_t sz = snprintf((char *)write_data, sizeof(write_data), "%.0lu,%d,%d,%d,%.0lu,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%0.2f,\n", time_uS, flight_state, drogue_ematch_status, main_ematch_status, launch_time, drogue_deploy_time, drogue_deploy_altitude, main_deploy_time, main_deploy_altitude, landing_time, landing_altitude, battery_voltage);
+	res = f_write(&SDFile, write_data, sz, (void *)&byteswritten);
+
+	if ((byteswritten == 0) || (res != FR_OK))
+	{
+		return res;
+	}
+	else
+	{
+
+		f_close(&SDFile);
+	}
+	return res;
+}
+
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 FRESULT SD_write_ekf_data(uint32_t time_uS, float qu1, float qu2, float qu3, float qu4)
 {
 	uint8_t write_data[_MAX_SS];
@@ -640,7 +755,11 @@ FRESULT delete_directory_contents(const TCHAR *path)
 			result = delete_directory_contents(file_path);
 			if (result != FR_OK)
 			{
+<<<<<<< HEAD
 //				return result;
+=======
+				return result;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 			}
 		}
 		else
@@ -649,7 +768,11 @@ FRESULT delete_directory_contents(const TCHAR *path)
 			result = f_unlink(file_path);
 			if (result != FR_OK)
 			{
+<<<<<<< HEAD
 //				return result;
+=======
+				return result;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 			}
 		}
 	}
@@ -693,13 +816,21 @@ void SD_write_accel_batch(uint8_t *accel_buffer, size_t accel_sz)
 	FRESULT res = f_open(&SDFile, accel_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, accel_buffer, accel_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -712,13 +843,21 @@ void SD_write_gyro_batch(uint8_t *gyro_buffer, size_t gyro_sz)
 	FRESULT res = f_open(&SDFile, gyro_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, gyro_buffer, gyro_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -731,13 +870,21 @@ void SD_write_mag_batch(uint8_t *mag_buffer, size_t mag_sz)
 	FRESULT res = f_open(&SDFile, mag_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, mag_buffer, mag_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -750,13 +897,21 @@ void SD_write_baro_batch(uint8_t *baro_buffer, size_t baro_sz)
 	FRESULT res = f_open(&SDFile, baro_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, baro_buffer, baro_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -769,21 +924,34 @@ void SD_write_gps_batch(uint8_t *gps_buffer, size_t gps_sz)
 	FRESULT res = f_open(&SDFile, gps_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, gps_buffer, gps_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
 	}
 }
 
 void SD_write_sys_logs_batch(uint8_t *sys_logs_buffer, size_t sys_logs_sz)
+=======
+		return res;
+	}
+}
+
+void SD_write_sys_state_batch(uint8_t *sys_state_buffer, size_t sys_state_sz)
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 {
 	uint32_t byteswritten;
 	// Write sys_state data
 	char sys_fname[32];
+<<<<<<< HEAD
 	sprintf(sys_fname, "%s/%s", directory_name, systemLogsDir);
 	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
@@ -795,6 +963,19 @@ void SD_write_sys_logs_batch(uint8_t *sys_logs_buffer, size_t sys_logs_sz)
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
 		return;
+=======
+	sprintf(sys_fname, "%s/%s", directory_name, systemStateDir);
+	FRESULT res = f_open(&SDFile, sys_fname, FA_OPEN_APPEND | FA_WRITE);
+	if (res != FR_OK)
+	{
+		return res;
+	}
+	res = f_write(&SDFile, sys_state_buffer, sys_state_sz, (void *)&byteswritten);
+	f_close(&SDFile);
+	if ((byteswritten == 0) || (res != FR_OK))
+	{
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -807,13 +988,21 @@ void SD_write_ekf_batch(uint8_t *ekf_buffer, size_t ekf_sz)
 	FRESULT res = f_open(&SDFile, ekf_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, ekf_buffer, ekf_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }
 
@@ -826,12 +1015,20 @@ void SD_write_internal_state_machine_batch(uint8_t *internal_sm_buffer, size_t i
 	FRESULT res = f_open(&SDFile, internal_sm_fname, FA_OPEN_APPEND | FA_WRITE);
 	if (res != FR_OK)
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 	res = f_write(&SDFile, internal_sm_buffer, internal_sm_sz, (void *)&byteswritten);
 	f_close(&SDFile);
 	if ((byteswritten == 0) || (res != FR_OK))
 	{
+<<<<<<< HEAD
 		return;
+=======
+		return res;
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 	}
 }

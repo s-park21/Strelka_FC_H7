@@ -44,6 +44,10 @@ void SD_write_gyro_batch(uint8_t *gyro_buffer, size_t gyro_sz);
 void SD_write_mag_batch(uint8_t *mag_buffer, size_t mag_sz);
 void SD_write_baro_batch(uint8_t *baro_buffer, size_t baro_sz);
 void SD_write_gps_batch(uint8_t *gps_buffer, size_t gps_sz);
+<<<<<<< HEAD
 void SD_write_sys_logs_batch(uint8_t *sys_logs_buffer, size_t sys_logs_sz);
+=======
+void SD_write_sys_state_batch(uint8_t *sys_state_buffer, size_t sys_state_sz);
+>>>>>>> eb38d08fb5e0ceba1f1d98f675b8df8f34fe3a8d
 void SD_write_ekf_batch(uint8_t *ekf_buffer, size_t ekf_sz);
 #endif /* INC_SD_H_ */
