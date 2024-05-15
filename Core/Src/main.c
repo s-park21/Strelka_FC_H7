@@ -198,7 +198,7 @@ GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
-SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
+SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = false };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
@@ -1618,16 +1618,16 @@ void send_rf_packet(uint16_t identifier, uint8_t *payload_data, size_t len) {
 	taskENTER_CRITICAL();
 	uint8_t res = LoRa_transmit(&LoRa_Handle, send_pkt, len + 15, 1000);
 	taskEXIT_CRITICAL();
-	if (res) {
-		// TODO: Handle LoRa timeout
-		printf("LoRa timed out");
-		// Attempt reset
-		LoRa_reset(&LoRa_Handle);
-		LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
-		if (LoRa_init(&LoRa_Handle) != LORA_OK) {
-			Non_Blocking_Error_Handler();
-		}
-	}
+//	if (res) {
+//		// TODO: Handle LoRa timeout
+//		printf("LoRa timed out");
+//		// Attempt reset
+//		LoRa_reset(&LoRa_Handle);
+//		LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
+//		if (LoRa_init(&LoRa_Handle) != LORA_OK) {
+//			Non_Blocking_Error_Handler();
+//		}
+//	}
 	LoRa_startReceiving(&LoRa_Handle);
 }
 
@@ -1924,7 +1924,7 @@ void Sample_Sensors(void *argument) {
 	float offsetZ = 0;
 	if (ADXL375_init(&adxl375, offsetX, offsetY, offsetZ)) {
 		store_sys_log("Error: ADXL375 failed to initialise");
-		Non_Blocking_Error_Handler();
+//		Non_Blocking_Error_Handler();
 	}
 
 	/* Init GPS */
@@ -1940,7 +1940,7 @@ void Sample_Sensors(void *argument) {
 	/* Perform system checks before arming */
 	// Check e-match continuities
 	// Check critical sensors
-	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false || adxl375.acc_good == false) {
+	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false || 0 /*adxl375.acc_good == false*/) {
 		store_sys_log("Error: Sensors failed to initialise");
 		// Alert critical sensor error code
 		Error_Handler();
