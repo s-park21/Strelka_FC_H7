@@ -1340,7 +1340,15 @@ void Non_Blocking_Error_Handler() {
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_DMA(&huart2, gps_data.gps_buffer, sizeof(gps_data.gps_buffer));
 	xTaskNotifyFromISR(Sample_Sensors_Handle, (uint32_t)MAX_10S_GPS, eSetBits, NULL);
-	//	debug_print(gps_buffer, sizeof(gps_buffer) , dbg=INFO);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+	uint32_t errorCode;
+	if(huart == &huart2)
+	{
+		errorCode = HAL_UART_GetError(&huart2);
+		HAL_UART_Receive_DMA(&huart2, gps_data.gps_buffer, sizeof(gps_data.gps_buffer));
+	}
 }
 
 /****** Radio control packet handling functions ******/
