@@ -238,7 +238,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char ekf_header[] = "timstamp (us), q0(w), q1(x), q2(y), q3(z), update enabled\n";
+	char ekf_header[] = "timstamp (us), q0(w), q1(x), q2(y), q3(z), Displacement X (m), Displacement Y (m), Displacement Z (m), Velocity X (m/s), Velocity Y (m/s), Velocity Z (m/s)\n";
 	res = f_write(&SDFile, ekf_header, sizeof(ekf_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))

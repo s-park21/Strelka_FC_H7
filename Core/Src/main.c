@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 #include "fatfs.h"
 #include "usb_device.h"
+#include <math.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -2059,10 +2060,13 @@ void Sample_Sensors(void *argument) {
 			parse_nmea(gps_data.gps_buffer);
 			// If its the first fix aquired, save the starting LLA
 			if (gps.gps_good && !gps_first_fix_logged) {
-				gps_first_fix_logged = true;
 				gps_data.initial_latitude = minmea_tocoord(&gps.gga_frame.latitude);
 				gps_data.initial_longitude = minmea_tocoord(&gps.gga_frame.longitude);
 				gps_data.initial_altitude = minmea_tofloat(&gps.gga_frame.altitude);
+
+				if(!isnanf(gps_data.initial_latitude) && !isnanf(gps_data.initial_longitude) && !isnanf(gps_data.initial_altitude)) {
+					gps_first_fix_logged = true;
+				}
 			}
 		}
 #endif
@@ -2219,7 +2223,7 @@ void Data_Logging(void *argument) {
 				} else
 					prefill_counter = max_batch_size;
 				if (ekf_sz <= sizeof(ekf_buffer) - ekf_write_sz) {
-					ekf_write_sz = snprintf((char*) &ekf_buffer[ekf_sz], sizeof(ekf_buffer) - ekf_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%d\n", micros(), ekf.state_vec_data[0], ekf.state_vec_data[1], ekf.state_vec_data[2], ekf.state_vec_data[3], 0);
+					ekf_write_sz = snprintf((char*) &ekf_buffer[ekf_sz], sizeof(ekf_buffer) - ekf_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), ekf.state_vec_data[0], ekf.state_vec_data[1], ekf.state_vec_data[2], ekf.state_vec_data[3], ekf.state_vec_data[4], ekf.state_vec_data[5], ekf.state_vec_data[6], ekf.state_vec_data[7], ekf.state_vec_data[8], ekf.state_vec_data[9]);
 					ekf_sz += ekf_write_sz;
 				} else
 					prefill_counter = max_batch_size;
@@ -2316,9 +2320,9 @@ void GPS_Tracker(void *argument) {
 	TickType_t xStreamPacketTransmitFrequency = pdMS_TO_TICKS(1000.0 / (float )packet_streamer.packet_stream_frequency); // Number of ms to delay for
 	TickType_t xStreamPacketLastWakeTime = xTaskGetTickCount();
 	// Reset GPS
-//	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_RESET);
-//	osDelay(100);
-//	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_RESET);
+	osDelay(100);
+	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_SET);
 
 	for (;;) {
 		xGPSTrackingTransmitFrequency = pdMS_TO_TICKS(1000.0 / (float )gps_tracker.chirp_frequency);
@@ -2413,40 +2417,40 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Run gyroscope predict step
-//		if (asm330.gyro_good || bmx055.gyro_good) {
-//			res = EKF_fs_predict_gyro(&ekf, p, q, r, dt);
-//			if (res) {
-//				// TODO: Log error
-//			}
-//		}
+		if (asm330.gyro_good || bmx055.gyro_good) {
+			res = EKF_fs_predict_gyro(&ekf, p, q, r, dt);
+			if (res) {
+				// TODO: Log error
+			}
+		}
 
 		// Run accelerometer predict step
-//		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
-//			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
+		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
+			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
+			if (res) {
+				printf("Log error here");
+			}
+		}
 
 		// If not in flight, update orientation estmate with gravity vector
-//		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
-//			// Delay start time so that orientation estimate converges
-//			res = EKF_fs_update_accel(&ekf, ax, ay, az);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
+		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
+			// Delay start time so that orientation estimate converges
+			res = EKF_fs_update_accel(&ekf, ax, ay, az);
+			if (res) {
+				printf("Log error here");
+			}
+		}
 
 		// Update state with barometer
-//		if (ms5611.baro_good) {
-//			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
+		if (ms5611.baro_good) {
+			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
+			if (res) {
+				printf("Log error here");
+			}
+		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
+		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0 && !isnanf(gps_data.initial_latitude)) {
 			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
 			if (res) {
 				printf("Log error here");
