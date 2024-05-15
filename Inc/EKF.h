@@ -66,5 +66,6 @@ void EKF_Predict(EKF *ekf, float p_rps, float q_rps, float r_rps, float dt);
 void EKF_Update(EKF *ekf, float ax_mps2, float ay_mps2, float az_mps2, float m, float pan, float tilt);
 arm_status dEP(arm_matrix_instance_f32 *qu, arm_matrix_instance_f32 *w, arm_matrix_instance_f32 *qd);
 void EP2Euler321(float *qu, float *euler);
+void EKF_Normalise(EKF *ekf);
 
 #endif
