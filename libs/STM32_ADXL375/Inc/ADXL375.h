@@ -2,8 +2,7 @@
  * ADXL375.h
  *
  *  Created on: 10 May 2024
- *  Author   Bryan Siepert and K.Townsend (Adafruit Industries)
- *  Modified by: Angus McLennan
+ *  Author: Angus McLennan
  *
  */
 

@@ -19,11 +19,13 @@ ExpLowPassFilter_t landing_lp_filter;
 uint32_t last_velocity_calculation_time = 0;
 float last_altitude = 0;
 
-uint8_t init_state_controller(float starting_altitude)
+uint8_t init_state_controller(float starting_altitude, float starting_pressure, float starting_temperature)
 {
     system_state.flight_state = IDLE_ON_PAD;
 
     system_state.starting_altitude = starting_altitude;
+    system_state.starting_pressure = starting_pressure;
+    system_state.starting_temperature = starting_temperature;
 
     // Initialise launch median filter
     initMedianFilter(&launch_median_filter, LAUNCH_ACCEL_FILTER_WIDTH, LAUNCH_ACCEL_FILTER_FREQ);

@@ -35,7 +35,7 @@
 #include "State_Machine.h"
 #include "Packets_Definitions.h"
 #include "SD.h"
-#include "EKF.h"
+#include "EKF_Full.h"
 #include "digital_filter.h"
 #include "State_Controller.h"
 /* USER CODE END Includes */
@@ -195,6 +195,7 @@ ASM330_Data_Handle asm330_data = { 0 };
 ADXL375_Data_Handle adxl375_data = { 0 };
 GPS_Data_Handle gps_data = { 0 };
 GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
+bool gps_first_fix_logged = false;
 LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
@@ -205,12 +206,9 @@ Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm3
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
 GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
 stream_packet_config_set packet_streamer = { .stream_packet_type_enabled = 10, .packet_stream_frequency = 0.5 };
-EKF ekf = { .do_update = true, };
-float EKF_K[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-float qu[4] = { 0, 0, 0.7071068, 0.7071068 }; // Corresponds to 0, 0, 90 YPR
-float EKF_P[16] = { 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01 };
-float EKF_Q[16] = { 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0.01 };
-float EKF_R[9] = { 10, 0, 0, 0, 10, 0, 0, 0, 10 };
+
+// Initialise full state Kalman filter
+EKF_fs_t ekf;
 
 // Buffers to store last sensor data read
 #define STREAM_METADATA_SIZE	8		// Number of bytes contained in metadata (header = 4 bytes + crc32 = 4 bytes)
@@ -339,6 +337,33 @@ int main(void) {
 	LoRa_Handle.power = POWER_17db;			 // default = 17db
 	LoRa_Handle.overCurrentProtection = 120; // default = 100 mA
 	LoRa_Handle.preamble = 8;				 // default = 8;
+
+	/* Full state Kalman filter configurations */
+	memset(ekf.state_vec_data, 0, sizeof(ekf.state_vec_data));
+	float accel_model_std = 10E-1;
+	float gyro_model_std = 10E-5;
+	float accel_sensor_std = 10E-4;
+	float baro_sensor_std = 10E-7;
+	float gps_sensor_std = 10E-9;
+	float mag_sensor_std = 10E-1;
+	create_diagonal_matrix(ekf.P_data, 10, 10, 1.0);
+	create_diagonal_matrix(ekf.Q_accel_data, 10, 10, accel_model_std);
+	// Set elements corresponding to quaternion states to zero
+	ekf.Q_accel_data[0] = 0;
+	ekf.Q_accel_data[11] = 0;
+	ekf.Q_accel_data[22] = 0;
+	ekf.Q_accel_data[33] = 0;
+	create_diagonal_matrix(ekf.Q_gyro_data, 10, 10, 1.0);
+	// Set elements corresponding to quaternion states to gyro standard deviation
+	ekf.Q_gyro_data[0] = gyro_model_std;
+	ekf.Q_gyro_data[11] = gyro_model_std;
+	ekf.Q_gyro_data[22] = gyro_model_std;
+	ekf.Q_gyro_data[33] = gyro_model_std;
+	create_diagonal_matrix(ekf.R_accel_data, 3, 3, accel_sensor_std);
+	ekf.R_baro_data[0] = baro_sensor_std;
+	create_diagonal_matrix(ekf.R_gps_data, 3, 3, gps_sensor_std);
+	ekf.R_gps_data[8] = 10E1;
+	create_diagonal_matrix(ekf.R_mag_data, 3, 3, mag_sensor_std);
 
 	HAL_GPIO_WritePin(SPI2_NSS5_GPIO_Port, SPI2_NSS5_Pin, GPIO_PIN_SET);
 
@@ -1626,16 +1651,6 @@ void send_rf_packet(uint16_t identifier, uint8_t *payload_data, size_t len) {
 	taskENTER_CRITICAL();
 	uint8_t res = LoRa_transmit(&LoRa_Handle, send_pkt, len + 15, 1000);
 	taskEXIT_CRITICAL();
-//	if (res) {
-//		// TODO: Handle LoRa timeout
-//		printf("LoRa timed out");
-//		// Attempt reset
-//		LoRa_reset(&LoRa_Handle);
-//		LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
-//		if (LoRa_init(&LoRa_Handle) != LORA_OK) {
-//			Non_Blocking_Error_Handler();
-//		}
-//	}
 	LoRa_startReceiving(&LoRa_Handle);
 }
 
@@ -1703,8 +1718,10 @@ void State_Machine(void *argument) {
 	HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
 	// Initialise State_Controller
-	if (init_state_controller(ms5611_data.altitude)) {
+	// TODO: Determine whether temperature barometer reads is sufficient
+	if (init_state_controller(ms5611_data.altitude, ms5611_data.pressure, ms5611_data.temperature)) {
 		// Handle error state
+		//TODO: Add log if this fails
 	}
 	osStatus_t res = osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	if (res == osOK) {
@@ -1742,7 +1759,12 @@ void State_Machine(void *argument) {
 	 */
 	while (1) {
 		float angle_from_vertical;
-		uint8_t result = calculate_attitude_error(&ekf.qu, &up_vec, &angle_from_vertical, &normal_vector);
+		// Create quaternion vector from state vector
+		arm_matrix_instance_f32 qu;
+		float qu_data[4];
+		memcpy(qu_data, ekf.state_vec_data, 4*sizeof(float));
+		arm_mat_init_f32(&qu, 4, 1, qu_data);
+		uint8_t result = calculate_attitude_error(&qu, &up_vec, &angle_from_vertical, &normal_vector);
 		// Remove to enable angle check
 //		angle_from_vertical = 0;
 		if (!result) {
@@ -1758,7 +1780,6 @@ void State_Machine(void *argument) {
 			}
 			bool launch_detected = detect_launch_accel(ax, ay, az, angle_from_vertical, millis());
 			if (launch_detected) {
-				system_state.starting_altitude = ms5611_data.altitude;
 				char log_msg[64];
 				size_t sz = snprintf(log_msg, sizeof(log_msg), "Launch detected. Starting altitude: %f", system_state.starting_altitude);
 				store_sys_log(log_msg);
@@ -1767,9 +1788,6 @@ void State_Machine(void *argument) {
 		}
 		osDelay(1);
 	}
-
-	// Disable Kalman Filter update step
-	ekf.do_update = false;
 
 	// Launch has been detected
 	// Determine which axis is up
@@ -2034,6 +2052,13 @@ void Sample_Sensors(void *argument) {
 			// Clear bits corresponding to this case
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, MAX_10S_GPS);
 			parse_nmea(gps_data.gps_buffer);
+			// If its the first fix aquired, save the starting LLA
+			if (gps.gps_good && !gps_first_fix_logged) {
+				gps_first_fix_logged = true;
+				gps_data.initial_latitude = minmea_tocoord(&gps.gga_frame.latitude);
+				gps_data.initial_longitude = minmea_tocoord(&gps.gga_frame.longitude);
+				gps_data.initial_altitude = minmea_tofloat(&gps.gga_frame.altitude);
+			}
 		}
 #endif
 	}
@@ -2091,8 +2116,7 @@ void Sample_Baro(void *argument) {
 	for (;;) {
 #ifndef RUN_HITL
 		// Read from ADXL375
-		if(ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
-			printf("Error");
+		if (ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
 			// TODO: Handle error
 		}
 
@@ -2190,7 +2214,7 @@ void Data_Logging(void *argument) {
 				} else
 					prefill_counter = max_batch_size;
 				if (ekf_sz <= sizeof(ekf_buffer) - ekf_write_sz) {
-					ekf_write_sz = snprintf((char*) &ekf_buffer[ekf_sz], sizeof(ekf_buffer) - ekf_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%d\n", micros(), ekf.qu_data[0], ekf.qu_data[1], ekf.qu_data[2], ekf.qu_data[3], ekf.do_update);
+					ekf_write_sz = snprintf((char*) &ekf_buffer[ekf_sz], sizeof(ekf_buffer) - ekf_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%d\n", micros(), ekf.state_vec_data[0], ekf.state_vec_data[1], ekf.state_vec_data[2], ekf.state_vec_data[3], 0);
 					ekf_sz += ekf_write_sz;
 				} else
 					prefill_counter = max_batch_size;
@@ -2313,7 +2337,7 @@ void GPS_Tracker(void *argument) {
 					osSemaphoreRelease(ADC1SemaphoreHandle);
 				}
 
-				stream_packet_type_0 pkt_0 = { .ambient_temperature = ms5611_data.temperature, .gyro1X = asm330_data.gyro[0], .gyro1Y = asm330_data.gyro[1], .gyro1Z = asm330_data.gyro[2], .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .battery_voltage = batVol, .flight_state = system_state.flight_state, .gps1_altitude = minmea_tofloat(&gps.gga_frame.altitude), .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .acc1X = asm330_data.accel[0], .acc1Y = asm330_data.accel[1], .acc1Z = asm330_data.accel[2], .velX = 0, .velY = 0, .velZ = 0, .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .quaternion_q1 = ekf.qu_data[0], .quaternion_q2 = ekf.qu_data[1], .quaternion_q3 = ekf.qu_data[2], .quaternion_q4 = ekf.qu_data[3], .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .gps1_good = gps.gps_good };
+				stream_packet_type_0 pkt_0 = { .ambient_temperature = ms5611_data.temperature, .gyro1X = asm330_data.gyro[0], .gyro1Y = asm330_data.gyro[1], .gyro1Z = asm330_data.gyro[2], .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .battery_voltage = batVol, .flight_state = system_state.flight_state, .gps1_altitude = minmea_tofloat(&gps.gga_frame.altitude), .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .acc1X = asm330_data.accel[0], .acc1Y = asm330_data.accel[1], .acc1Z = asm330_data.accel[2], .velX = 0, .velY = 0, .velZ = 0, .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .quaternion_q1 = ekf.state_vec_data[0], .quaternion_q2 = ekf.state_vec_data[1], .quaternion_q3 = ekf.state_vec_data[2], .quaternion_q4 = ekf.state_vec_data[3], .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .gps1_good = gps.gps_good };
 				send_rf_packet(STREAM_PACKET_TYPE_0, (uint8_t*) &pkt_0, sizeof(pkt_0));
 			}
 		} else {
@@ -2333,17 +2357,25 @@ void GPS_Tracker(void *argument) {
 /* USER CODE END Header_Extended_Kalman_Filter */
 void Extended_Kalman_Filter(void *argument) {
 	/* USER CODE BEGIN Extended_Kalman_Filter */
-	while (!sensors_initialised) {
+	while (!sensors_initialised || system_state.starting_pressure == 0) {
 		osDelay(10);
 	}
+//	float asm330_acc_offsets[3];
+//	float bmx055_acc_offsets[3];
+//	calibrate_accelerometer(asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], asm330_acc_offsets);
+//	calibrate_accelerometer(bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2], bmx055_acc_offsets);
+
 	uint32_t currentSampleTime = 0;
 	uint32_t lastSampleTime = 0;
 	uint32_t correct_freq = 1;
 	uint32_t update_index = 0;
 	float p, q, r;
 	float ax, ay, az;
-	EKF_Init(&ekf, qu, EKF_K, EKF_P, EKF_Q, EKF_R, 0.0);
-	ekf.do_update = true;
+	uint32_t ekf_start_time = millis();
+	EKF_fs_Status_t res = EKF_fs_init(&ekf);
+	if (res) {
+		// TODO: Log error
+	}
 
 	/* Infinite loop */
 	for (;;) {
@@ -2361,29 +2393,85 @@ void Extended_Kalman_Filter(void *argument) {
 			q = (float) (bmx055_data.gyro[1]);
 			r = (float) (bmx055_data.gyro[2]);
 		}
-		EKF_Predict(&ekf, p, q, r, dt);
 
-		if (update_index % correct_freq == 0 && ekf.do_update && system_state.flight_state == IDLE_ON_PAD) {
-			// Extract accelerometer data
-			/*if (asm330.acc_good) {
-			 ax = (float) (asm330_data.accel[0]);
-			 ay = (float) (asm330_data.accel[1]);
-			 az = (float) (asm330_data.accel[2]);
-			 } else {
-			 ax = (float) (bmx055_data.accel[0]);
-			 ay = (float) (bmx055_data.accel[1]);
-			 az = (float) (bmx055_data.accel[2]);
-			 }*/
+		// Extract accelerometer data
+		if (asm330.acc_good) {
+			ax = (float) (asm330_data.accel[0]);
+			ay = (float) (asm330_data.accel[1]);
+			az = (float) (asm330_data.accel[2]);
+		} else {
 			ax = (float) (bmx055_data.accel[0]);
 			ay = (float) (bmx055_data.accel[1]);
 			az = (float) (bmx055_data.accel[2]);
-
-			EKF_Update(&ekf, ax, ay, az, 10.0, 0, 0);
-			update_index = 0;
 		}
-		EKF_Normalise(&ekf);
-		update_index++;
+		// If sensor is close to saturation (16G), use high G accelerometer
+		if (adxl375.acc_good) {
+			if (ax >= 15 || ay >= 15 || az >= 15) {
+				/* ENSURE AXES OF SENSOR ARE ALIGNED WITH OTHER SENSORS */
+#warning "Ensure that axes of high G accelerometer are aligned/configured correctly"
+				ax = (float) (adxl375_data.accel[0]);
+				ay = (float) (adxl375_data.accel[1]);
+				az = (float) (adxl375_data.accel[2]);
+			}
+		}
 
+		// Run gyroscope predict step
+		if (asm330.gyro_good || bmx055.gyro_good) {
+			res = EKF_fs_predict_gyro(&ekf, p, q, r, dt);
+			if (res) {
+				// TODO: Log error
+			}
+		}
+
+		// Run accelerometer predict step
+		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
+			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
+			if (res) {
+				printf("Log error here");
+			}
+		}
+
+		// If not in flight, update orientation estmate with gravity vector
+		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
+			// Delay start time so that orientation estimate converges
+			res = EKF_fs_update_accel(&ekf, ax, ay, az);
+			if (res) {
+				printf("Log error here");
+			}
+		}
+
+		// Update state with barometer
+		if (ms5611.baro_good) {
+			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
+			if (res) {
+				printf("Log error here");
+			}
+		}
+
+		// Update with GPS if GPS has fix and rocket is not on ascent
+		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
+			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
+			if (res) {
+				printf("Log error here");
+			}
+		}
+
+		// Update state with magnetometer
+//		if (bmx055.mag_good && millis() - ekf_start_time >= 3000) {
+//			res = EKF_fs_update_mag(&ekf, bmx055_data.mag[0], bmx055_data.mag[1], bmx055_data.mag[2]);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
+
+		// Convert quaterion state to euler angles
+		float euler[3];
+		EKF_fs_EP2Euler321(ekf.state_vec_data, &euler);
+		euler[0] *= 180/M_PI;
+		euler[1] *= 180/M_PI;
+		euler[2] *= 180/M_PI;
+
+		printf("%f, %f, %f\r\n", euler[0], euler[1], euler[2]);
 		osDelay(10);
 	}
 	/* USER CODE END Extended_Kalman_Filter */

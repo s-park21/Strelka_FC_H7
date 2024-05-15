@@ -16,7 +16,7 @@
 
 
 #ifndef GRAVITY_MPS
-#define GRAVITY_MPS							9.81
+#define GRAVITY_MPS 9.8065f
 #endif
 
 

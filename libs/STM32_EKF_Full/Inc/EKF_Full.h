@@ -13,16 +13,22 @@
 
 #include "arm_math.h"
 #include <math.h>
+#include "rt_nonfinite.h"
+#include "rtGetInf.h"
+#include "rtGetNaN.h"
+#include "rtwtypes.h"
 
 #define STATE_VEC_DIMS 10
+#ifndef GRAVITY_MPS
 #define GRAVITY_MPS 9.8065f
+#endif
 
 // Barometer correction constants
 #define R_gas 287.05f
 #define LAPSE_RATE -0.0065f
 
 // GPS constants
-#define RADIUS_EARTH 6371000f // Earth radius in metres
+#define RADIUS_EARTH 6371000.0f // Earth radius in metres
 
 typedef struct
 {
@@ -37,11 +43,11 @@ typedef struct
     arm_matrix_instance_f32 Q_gyro;                      // Gyroscope Q matrix
     float Q_gyro_data[STATE_VEC_DIMS * STATE_VEC_DIMS];  // Gyroscope Q matrix data
     arm_matrix_instance_f32 R_mag;                       // Magnetometer R matrix
-    float R_mag_data[STATE_VEC_DIMS * STATE_VEC_DIMS];   // Magnetometer R matrix data
+    float R_mag_data[3 * 3];   // Magnetometer R matrix data
     arm_matrix_instance_f32 R_gps;                       // GPS R matrix
-    float R_gps_data[STATE_VEC_DIMS * STATE_VEC_DIMS];   // GPS R matrix data
+    float R_gps_data[3 * 3];   // GPS R matrix data
     arm_matrix_instance_f32 R_baro;                      // Barometer R matrix
-    float R_baro_data[STATE_VEC_DIMS * STATE_VEC_DIMS];  // Barometer R matrix data
+    float R_baro_data[1];  // Barometer R matrix data
 } EKF_fs_t;
 
 typedef enum
@@ -60,15 +66,19 @@ EKF_fs_Status_t EKF_fs_init(EKF_fs_t *ekf); // TODO: Create instances of all arm
 EKF_fs_Status_t EKF_fs_predict_accel(EKF_fs_t *ekf, float ax, float ay, float az, float dt);
 EKF_fs_Status_t EKF_fs_predict_gyro(EKF_fs_t *ekf, float p, float q, float r, float dt);
 EKF_fs_Status_t EKF_fs_update_accel(EKF_fs_t *ekf, float ax, float ay, float az);
-EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_altitude_agl, float initial_pressure, float initial_temperature, float initial_altitude);
-EKF_fs_Status_t EKF_fs_update_gps(EKF_fs_t *ekf, float current_latitude, float current_longitude, float current_altitude, float initial_latitude, float intitial_longitude, float initial_altitude);
+EKF_fs_Status_t EKF_fs_update_baro(EKF_fs_t *ekf, float current_pressure_Pa, float initial_pressure_Pa, float initial_temperature_K, float initial_altitude_m);
+EKF_fs_Status_t EKF_fs_update_gps(EKF_fs_t *ekf, float current_latitude, float current_longitude, float current_altitude, float initial_latitude, float initial_longitude, float initial_altitude);
 EKF_fs_Status_t EKF_fs_update_mag(EKF_fs_t *ekf, float mx, float my, float mz);
-EKF_fs_Status_t EKF_fs_calculate_K_matrix(EKF_fs_t *ekf, arm_matrix_instance_f32 *J, arm_matrix_instance_f32 *K);
+EKF_fs_Status_t EKF_fs_calculate_K_matrix(EKF_fs_t *ekf, arm_matrix_instance_f32 *J, arm_matrix_instance_f32 *K, arm_matrix_instance_f32 *R);
+EKF_fs_Status_t EKF_fs_update_P_matrix(EKF_fs_t *ekf, arm_matrix_instance_f32 *J, arm_matrix_instance_f32 *K);
 
+void EKF_fs_normalise_vector(float *vector, size_t len);
 void get_gyro_jacob(float w1, float w2, float w3, float qw, float qx, float qy, float qz, float dt, float jacob_w_pred[100]);
 void get_mag_jacob(float qw, float qx, float qy, float qz, float jacob_mag[30]);
 void get_acc_jacob(float qw, float qx, float qy, float qz, float a1, float a2, float a3, float dt, float jacob_a_pred[100]);
-void EP2C(float qw, float qx, float qy, float qz, float C[9]);
-void BmatEP(double qw, double qx, double qy, double qz, double B[12]);
-
+void EKF_fs_EP2C(float qw, float qx, float qy, float qz, float C[9]);
+void BmatEP(float qw, float qx, float qy, float qz, float B[12]);
+void create_diagonal_matrix(float *output_matrix, int rows, int cols, float init_diag);
+void EKF_fs_EP2Euler321(float *qu, float *euler);
+void calibrate_accelerometer(float ax, float ay, float az, float *offxyz);
 #endif // INC_EKF_FULL_H_
