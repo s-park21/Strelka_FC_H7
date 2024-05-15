@@ -202,7 +202,11 @@ uint8_t MS5611_readRegister24(MS5611_Handle *ms5611, uint8_t register_addr, uint
 		*data = ((int32_t) read_data[1] << 16) | ((int32_t) read_data[2] << 8) | read_data[3];
 		return 0;
 	}
+<<<<<<< HEAD
+	return 1 ;
+=======
 	return 1;
+>>>>>>> 28dd15703d1c1671e9f5f15d2b74ae7ecacb8fbc
 }
 
 uint8_t MS5611_readRegister(MS5611_Handle *ms5611, uint8_t register_addr, uint8_t *data) {
