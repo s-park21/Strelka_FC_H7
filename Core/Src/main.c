@@ -200,7 +200,7 @@ bool gps_first_fix_logged = false;
 LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
-SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = false };
+SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_6667Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_GY_ODR_6667Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
@@ -2202,7 +2202,7 @@ void Data_Logging(void *argument) {
 			// Append data to buffer arrays
 			if (prefill_counter < max_batch_size) {
 				if (accel_sz <= sizeof(accel_buffer) - accel_write_sz) {
-					accel_write_sz = snprintf((char*) &accel_buffer[accel_sz], sizeof(accel_buffer) - accel_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2]);
+					accel_write_sz = snprintf((char*) &accel_buffer[accel_sz], sizeof(accel_buffer) - accel_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2], adxl375_data.accel[0] , adxl375_data.accel[1], adxl375_data.accel[2]);
 					// Store previous write size
 					accel_sz += accel_write_sz;
 				} else
