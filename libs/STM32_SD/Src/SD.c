@@ -93,7 +93,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	uint8_t accel_header[] = "timestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g)\n";
+	uint8_t accel_header[] = "Accelerometer data:\nAccel 1: ASM330\nAccel 2: BMX055\n Accel 3: ADXL375\n\ntimestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g),acc3X(g),acc3Y(g),acc3Z(g)\n";
 	res = f_write(&SDFile, accel_header, sizeof(accel_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -122,7 +122,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char gyro_header[] = "timestamp(uS),gyro1X(rad/s),gyro1Y(rad/s),gyro1Z(rad/s),gyro2X(rad/s),gyro2Y(rad/s),gyro2Z(rad/s)\n";
+	char gyro_header[] = "Gyroscope data:\nGyro1: ASM330\nGyro2: BMX055\n\ntimestamp(uS),gyro1X(rad/s),gyro1Y(rad/s),gyro1Z(rad/s),gyro2X(rad/s),gyro2Y(rad/s),gyro2Z(rad/s)\n";
 	res = f_write(&SDFile, gyro_header, sizeof(gyro_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -151,7 +151,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char mag_header[] = "timestamp(uS),magX(uT),magY(uT),magZ(uT)\n";
+	char mag_header[] = "Magnetometer data:\nMag: BMX055\n\ntimestamp(uS),magX(uT),magY(uT),magZ(uT)\n";
 	res = f_write(&SDFile, mag_header, sizeof(mag_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -180,7 +180,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char baro_header[] = "timestamp(uS),altitude(m),pressure(Pa),temperature(degC)\n";
+	char baro_header[] = "Barometer data:\nBaro: MS5611\n\ntimestamp(uS),altitude(m),pressure(Pa),temperature(degC)\n";
 	res = f_write(&SDFile, baro_header, sizeof(baro_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -209,7 +209,11 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char sys_header[] = "SYSTEM LOGS\n";
+	char sys_header[128] = "SYSTEM LOGS\nStrelka Flight Computer\n";
+#ifdef GIT_INFO_PRESENT
+	snprintf(sys_header, sizeof(sys_header), "%s%s\n", sys_header, GIT_INFO);
+#endif
+
 	res = f_write(&SDFile, sys_header, sizeof(sys_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -238,7 +242,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char ekf_header[] = "timstamp (us), q0(w), q1(x), q2(y), q3(z), Displacement X (m), Displacement Y (m), Displacement Z (m), Velocity X (m/s), Velocity Y (m/s), Velocity Z (m/s)\n";
+	char ekf_header[] = "timestamp (us),q0(w),q1(x),q2(y),q3(z),Displacement X (m),Displacement Y (m),Displacement Z (m),Velocity X (m/s),Velocity Y (m/s),Velocity Z (m/s)\n";
 	res = f_write(&SDFile, ekf_header, sizeof(ekf_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -268,7 +272,7 @@ FRESULT SD_write_headers()
 		Non_Blocking_Error_Handler();
 	}
 
-	char internal_sm_header[] = "Timestamp (uS), Angle from vertical (rad), Filtered launch detection acceleration (g), Filtered burnout detection x acceleration (g), Filtered apogee detection altitude (m), Filtered apogee detection vertical velocity (m/s), Filtered apogee detection acceleration (g), Unfiltered main detection agl altitude (m), Filtered landing detection vertical velocity (m), Up axis index\n";
+	char internal_sm_header[] = "Timestamp (uS),Angle from vertical (rad),Filtered launch detection acceleration (g),Filtered burnout detection x acceleration (g),Filtered apogee detection altitude (m),Filtered apogee detection vertical velocity (m/s),Filtered apogee detection acceleration (g),Unfiltered main detection agl altitude (m),Filtered landing detection vertical velocity (m),Up axis index\n";
 	res = f_write(&SDFile, internal_sm_header, sizeof(internal_sm_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -285,6 +289,35 @@ FRESULT SD_write_headers()
 		f_close(&SDFile);
 	}
 	osDelay(10);
+
+	sprintf(fname, "%s/%s", directory_name, GPSDir);
+		res = f_open(&SDFile, fname, FA_OPEN_APPEND | FA_WRITE);
+		osDelay(10);
+		if (res != FR_OK)
+		{
+			if (res == FR_LOCKED)
+			{
+				return res;
+			}
+			Non_Blocking_Error_Handler();
+		}
+		char gps_header[] = "GPS Data:\nGPS: UBLOX MAX-10s\n\nTimestamp (uS),Latitude(deg),Longitude(deg),Altitude(m),Fix Quality,Satellites Tracked,Datetime\n";
+		res = f_write(&SDFile, gps_header, sizeof(gps_header), (void *)&byteswritten);
+
+		if ((byteswritten == 0) || (res != FR_OK))
+		{
+			if (res == FR_LOCKED)
+			{
+				return res;
+			}
+			Non_Blocking_Error_Handler();
+		}
+		else
+		{
+
+			f_close(&SDFile);
+		}
+		osDelay(10);
 	return res;
 }
 
