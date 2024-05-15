@@ -205,7 +205,7 @@ ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPI
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
 GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
-stream_packet_config_set packet_streamer = { .stream_packet_type_enabled = 10, .packet_stream_frequency = 10 };
+stream_packet_config_set packet_streamer = { .stream_packet_type_enabled = 10, .packet_stream_frequency = 1.0 };
 
 // Initialise full state Kalman filter
 EKF_fs_t ekf;
@@ -2424,12 +2424,12 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Run accelerometer predict step
-		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
-			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+//		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
+//			res = EKF_fs_predict_accel(&ekf, ax, ay, az, dt);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// If not in flight, update orientation estmate with gravity vector
 		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
@@ -2441,20 +2441,20 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Update state with barometer
-		if (ms5611.baro_good) {
-			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+//		if (ms5611.baro_good) {
+//			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
-			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+//		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
+//			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Update state with magnetometer
 //		if (bmx055.mag_good && millis() - ekf_start_time >= 3000) {
