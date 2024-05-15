@@ -1,4 +1,5 @@
 function [gps_pred, jacob_gps] = update_gps(x, anchor_point_lla)
+    RADIUS_EARTH = 6371*10^3;
 
     gps_lat_prediction = x(5)/(RADIUS_EARTH*cos(anchor_point_lla(1)*pi/180))+anchor_point_lla(1);
     gps_lon_prediction = x(6)/(RADIUS_EARTH)+anchor_point_lla(2);

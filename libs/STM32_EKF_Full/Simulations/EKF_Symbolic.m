@@ -43,3 +43,39 @@ gps_lat_prediction = state_vector(5)/(RADIUS_EARTH*cos(anchor_point_lla(1)*pi/18
 gps_lon_prediction = state_vector(6)/(RADIUS_EARTH)+anchor_point_lla(2);
 h_gps = [gps_lat_prediction;gps_lon_prediction;anchor_point_lla(3)-state_vector(7)];
 jacob_gps_update = jacobian(h_gps,state_vector);
+
+filename = 'output_matrix.txt';
+generate_C_code(jacob_accel_pred, filename);
+disp(['C code written to ' filename]);
+
+%% C Code Generator
+function generate_C_code(symbolic_matrix, filename)
+    [rows, cols] = size(symbolic_matrix);
+
+    fid = fopen(filename, 'w');
+    if fid == -1
+        error('Cannot open file for writing');
+    end
+
+    fprintf(fid, '#include <stdio.h>\n\n');
+    fprintf(fid, 'double matrix[%d][%d] = {\n', rows, cols);
+
+    for i = 1:rows
+        fprintf(fid, '\t{');
+        for j = 1:cols
+            fprintf(fid, '%s', char(symbolic_matrix(i,j)));
+            if j < cols
+                fprintf(fid, ', ');
+            end
+        end
+        if i < rows
+            fprintf(fid, '},\n');
+        else
+            fprintf(fid, '}\n');
+        end
+    end
+
+    fprintf(fid, '};\n\n');
+
+    fclose(fid);
+end
