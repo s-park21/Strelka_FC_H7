@@ -18,4 +18,4 @@ git subtree pull --prefix=libs/state_machine git@github.com:Hover-Disaster/Strel
 git subtree pull --prefix=libs/CHIRP git@github.com:s-park21/CHIRP.git main --squash
 git subtree pull --prefix=libs/STM32_EKF git@github.com:Hover-Disaster/STM32_EKF.git main --squash
 git subtree pull --prefix=libs/STM32_ADXL375 git@github.com:Hover-Disaster/STM32_ADXL375.git main --squash
-git subtree pull --prefix=libs/STM32_ADXL375 git@github.com:Hover-Disaster/STM32_EKF_Full.git main --squash
+git subtree pull --prefix=libs/STM32_EKF_Full git@github.com:Hover-Disaster/STM32_EKF_Full.git main --squash
