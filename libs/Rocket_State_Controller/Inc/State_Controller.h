@@ -120,6 +120,8 @@ typedef struct
 	float main_deploy_altitude;
 	uint32_t landing_time;
 	float landing_altitude;
+	float available_flash_memory_kB;
+	float batteryVoltage;
 } System_State_t;
 
 // A struct used to store internal state information of the state machine

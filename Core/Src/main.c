@@ -332,7 +332,7 @@ int main(void) {
 
 	LoRa_Handle.frequency = 915;
 	LoRa_Handle.spredingFactor = SF_7;		 // default = SF_7
-	LoRa_Handle.bandWidth = BW_125KHz;		 // default = BW_125KHz
+	LoRa_Handle.bandWidth = BW_500KHz;		 // default = BW_125KHz
 	LoRa_Handle.crcRate = CR_4_5;			 // default = CR_4_5
 	LoRa_Handle.power = POWER_17db;			 // default = 17db
 	LoRa_Handle.overCurrentProtection = 120; // default = 100 mA
@@ -1369,8 +1369,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	uint32_t errorCode;
-	if(huart == &huart2)
-	{
+	if (huart == &huart2) {
 		errorCode = HAL_UART_GetError(&huart2);
 		HAL_UART_Receive_DMA(&huart2, gps_data.gps_buffer, sizeof(gps_data.gps_buffer));
 	}
@@ -1671,7 +1670,7 @@ void StartDefaultTask(void *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1000);
+		osDelay(10000);
 		if (system_state.flight_state == IDLE_ON_PAD) {
 			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
 				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
@@ -1682,6 +1681,12 @@ void StartDefaultTask(void *argument) {
 				}
 				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
 			}
+		}
+
+		SD_get_free_space_kB(&system_state.available_flash_memory_kB);
+		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+			system_state.batteryVoltage = calculateBatteryVoltage(&hadc1);
+			osSemaphoreRelease(ADC1SemaphoreHandle);
 		}
 
 	}
@@ -1762,7 +1767,7 @@ void State_Machine(void *argument) {
 		// Create quaternion vector from state vector
 		arm_matrix_instance_f32 qu;
 		float qu_data[4];
-		memcpy(qu_data, ekf.state_vec_data, 4*sizeof(float));
+		memcpy(qu_data, ekf.state_vec_data, 4 * sizeof(float));
 		arm_mat_init_f32(&qu, 4, 1, qu_data);
 		uint8_t result = calculate_attitude_error(&qu, &up_vec, &angle_from_vertical, &normal_vector);
 		// Remove to enable angle check
@@ -2329,15 +2334,7 @@ void GPS_Tracker(void *argument) {
 			vTaskDelayUntil(&xStreamPacketLastWakeTime, xStreamPacketTransmitFrequency);
 			// Check again if state changed during delay
 			if (packet_streamer.stream_packet_type_enabled == 0) {
-				float available_flash_memory_kB;
-				float batVol;
-				SD_get_free_space_kB(&available_flash_memory_kB);
-				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
-					batVol = calculateBatteryVoltage(&hadc1);
-					osSemaphoreRelease(ADC1SemaphoreHandle);
-				}
-
-				stream_packet_type_0 pkt_0 = { .ambient_temperature = ms5611_data.temperature, .gyro1X = asm330_data.gyro[0], .gyro1Y = asm330_data.gyro[1], .gyro1Z = asm330_data.gyro[2], .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .battery_voltage = batVol, .flight_state = system_state.flight_state, .gps1_altitude = minmea_tofloat(&gps.gga_frame.altitude), .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .acc1X = asm330_data.accel[0], .acc1Y = asm330_data.accel[1], .acc1Z = asm330_data.accel[2], .velX = 0, .velY = 0, .velZ = 0, .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .quaternion_q1 = ekf.state_vec_data[0], .quaternion_q2 = ekf.state_vec_data[1], .quaternion_q3 = ekf.state_vec_data[2], .quaternion_q4 = ekf.state_vec_data[3], .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .gps1_good = gps.gps_good };
+				stream_packet_type_0 pkt_0 = { .ambient_temperature = ms5611_data.temperature, .gyro1X = asm330_data.gyro[0], .gyro1Y = asm330_data.gyro[1], .gyro1Z = asm330_data.gyro[2], .available_flash_memory = system_state.available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .battery_voltage = system_state.batteryVoltage, .flight_state = system_state.flight_state, .gps1_altitude = minmea_tofloat(&gps.gga_frame.altitude), .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .acc1X = asm330_data.accel[0], .acc1Y = asm330_data.accel[1], .acc1Z = asm330_data.accel[2], .velX = 0, .velY = 0, .velZ = 0, .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .quaternion_q1 = ekf.state_vec_data[0], .quaternion_q2 = ekf.state_vec_data[1], .quaternion_q3 = ekf.state_vec_data[2], .quaternion_q4 = ekf.state_vec_data[3], .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .gps1_good = gps.gps_good };
 				send_rf_packet(STREAM_PACKET_TYPE_0, (uint8_t*) &pkt_0, sizeof(pkt_0));
 			}
 		} else {
@@ -2467,9 +2464,9 @@ void Extended_Kalman_Filter(void *argument) {
 		// Convert quaterion state to euler angles
 		float euler[3];
 		EKF_fs_EP2Euler321(ekf.state_vec_data, &euler);
-		euler[0] *= 180/M_PI;
-		euler[1] *= 180/M_PI;
-		euler[2] *= 180/M_PI;
+		euler[0] *= 180 / M_PI;
+		euler[1] *= 180 / M_PI;
+		euler[2] *= 180 / M_PI;
 
 		printf("%f, %f, %f\r\n", euler[0], euler[1], euler[2]);
 		osDelay(10);
