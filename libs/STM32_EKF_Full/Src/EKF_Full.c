@@ -285,7 +285,7 @@ EKF_fs_Status_t EKF_fs_update_gps(EKF_fs_t *ekf, float current_latitude, float c
 
 	// Calculate GPS jacobian
 	float gps_jacob_data[3 * 10] = { 0 };
-	gps_jacob_data[4] = 1 / RADIUS_EARTH * cos((M_PI * initial_latitude) / 180);
+	gps_jacob_data[4] = 1 / (RADIUS_EARTH * cos((M_PI * initial_latitude) / 180));
 	gps_jacob_data[15] = 1 / RADIUS_EARTH;
 	gps_jacob_data[26] = -1;
 	arm_matrix_instance_f32 gps_jacob;
@@ -301,9 +301,9 @@ EKF_fs_Status_t EKF_fs_update_gps(EKF_fs_t *ekf, float current_latitude, float c
 		return res;
 
 	// Calculate difference between measured GPS coordinates and predicted GPS coordinates
-	gps_pred[0] -= current_latitude;
-	gps_pred[1] -= current_longitude;
-	gps_pred[2] -= current_altitude;
+	gps_pred[0] = current_latitude - gps_pred[0];
+	gps_pred[1] = current_longitude - gps_pred[1];
+	gps_pred[2] = current_altitude - gps_pred[2];
 
 	arm_matrix_instance_f32 gps_diff;
 	arm_mat_init_f32(&gps_diff, 3, 1, gps_pred);

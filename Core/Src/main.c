@@ -2316,9 +2316,9 @@ void GPS_Tracker(void *argument) {
 	TickType_t xStreamPacketTransmitFrequency = pdMS_TO_TICKS(1000.0 / (float )packet_streamer.packet_stream_frequency); // Number of ms to delay for
 	TickType_t xStreamPacketLastWakeTime = xTaskGetTickCount();
 	// Reset GPS
-	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_RESET);
-	osDelay(100);
-	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_RESET);
+//	osDelay(100);
+//	HAL_GPIO_WritePin(GPS_RST_GPIO_Port, GPS_RST_Pin, GPIO_PIN_SET);
 
 	for (;;) {
 		xGPSTrackingTransmitFrequency = pdMS_TO_TICKS(1000.0 / (float )gps_tracker.chirp_frequency);
@@ -2413,12 +2413,12 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Run gyroscope predict step
-		if (asm330.gyro_good || bmx055.gyro_good) {
-			res = EKF_fs_predict_gyro(&ekf, p, q, r, dt);
-			if (res) {
-				// TODO: Log error
-			}
-		}
+//		if (asm330.gyro_good || bmx055.gyro_good) {
+//			res = EKF_fs_predict_gyro(&ekf, p, q, r, dt);
+//			if (res) {
+//				// TODO: Log error
+//			}
+//		}
 
 		// Run accelerometer predict step
 //		if ((asm330.acc_good || bmx055.acc_good) && millis() - ekf_start_time >= 3000) {
@@ -2429,13 +2429,13 @@ void Extended_Kalman_Filter(void *argument) {
 //		}
 
 		// If not in flight, update orientation estmate with gravity vector
-		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
-			// Delay start time so that orientation estimate converges
-			res = EKF_fs_update_accel(&ekf, ax, ay, az);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+//		if (system_state.flight_state == IDLE_ON_PAD && (asm330.acc_good || bmx055.acc_good)) {
+//			// Delay start time so that orientation estimate converges
+//			res = EKF_fs_update_accel(&ekf, ax, ay, az);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Update state with barometer
 //		if (ms5611.baro_good) {
@@ -2446,12 +2446,12 @@ void Extended_Kalman_Filter(void *argument) {
 //		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-//		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
-//			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
-//			if (res) {
-//				printf("Log error here");
-//			}
-//		}
+		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0) {
+			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
+			if (res) {
+				printf("Log error here");
+			}
+		}
 
 		// Update state with magnetometer
 //		if (bmx055.mag_good && millis() - ekf_start_time >= 3000) {
