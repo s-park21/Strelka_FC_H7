@@ -24,29 +24,35 @@ typedef struct {
 	float accel[3];
 	float gyro[3];
 	float mag[3];
+	float acc_offsets[3];
+	float gyro_offsets[3];
+	float mag_offsets[3];
 	bool accel_updated;
 	bool gyro_updated;
 	bool mag_updated;
-}BMX055_Data_Handle;
+} BMX055_Data_Handle;
 
 typedef struct {
 	float pressure;
 	float temperature;
 	float altitude;
 	bool baro_updated;
-}MS5611_Data_Handle;
+} MS5611_Data_Handle;
 
 typedef struct {
 	float accel[3];
 	float gyro[3];
+	float acc_offsets[3];
+	float gyro_offsets[3];
 	bool accel_updated;
 	bool gyro_updated;
-}ASM330_Data_Handle;
+} ASM330_Data_Handle;
 
 typedef struct {
 	float accel[3];
+	float acc_offsets[3];
 	bool accel_updated;
-}ADXL375_Data_Handle;
+} ADXL375_Data_Handle;
 
 /* A hardware specific data type containing state information about on board sensors */
 typedef struct {
@@ -61,8 +67,6 @@ typedef struct {
 	bool *lora_good;
 } Sensor_State;
 
-
-
 #define GPS_Buff_Size 128
 typedef struct {
 	uint8_t gps_buffer[GPS_Buff_Size];
@@ -70,9 +74,9 @@ typedef struct {
 	float initial_longitude;
 	float initial_altitude;
 	bool gps_first_fix_logged;
-}GPS_Data_Handle;
+} GPS_Data_Handle;
 
-void init_adc(ADC_HandleTypeDef* hadc);
-float get_battery_voltage(ADC_HandleTypeDef* hadc);
+void init_adc(ADC_HandleTypeDef *hadc);
+float get_battery_voltage(ADC_HandleTypeDef *hadc);
 
 #endif /* INC_SENSORS_H_ */

@@ -8,11 +8,6 @@
 #ifndef INC_STATE_MACHINE_H_
 #define INC_STATE_MACHINE_H_
 #include <stdbool.h>
-<<<<<<< HEAD
-=======
-//#include "stm32f4xx_hal.h"
-//#include "stm32h7xx_hal.h"
->>>>>>> 523245b2d59f4a33f844212dc3156120f53f8e05
 #include "main.h"
 #include <math.h>
 #include <stdlib.h>
@@ -21,11 +16,7 @@
 
 
 #ifndef GRAVITY_MPS
-<<<<<<< HEAD
 #define GRAVITY_MPS 9.8065f
-=======
-#define GRAVITY_MPS							9.81
->>>>>>> 523245b2d59f4a33f844212dc3156120f53f8e05
 #endif
 
 
