@@ -93,7 +93,7 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	uint8_t accel_header[] = "Accelerometer data:\nAccel 1: ASM330\nAccel 2: BMX055\n Accel 3: ADXL375\n\ntimestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g),acc3X(g),acc3Y(g),acc3Z(g)\n";
+	uint8_t accel_header[] = "Accelerometer data:\nAccel 1: ASM330\nAccel 2: BMX055\nAccel 3: ADXL375\n\ntimestamp(uS),acc1X(g),acc1Y(g),acc1Z(g),acc2X(g),acc2Y(g),acc2Z(g),acc3X(g),acc3Y(g),acc3Z(g)\n";
 	res = f_write(&SDFile, accel_header, sizeof(accel_header), (void *)&byteswritten);
 
 	if ((byteswritten == 0) || (res != FR_OK))
@@ -209,10 +209,12 @@ FRESULT SD_write_headers()
 		}
 		Non_Blocking_Error_Handler();
 	}
-	char sys_header[128] = "SYSTEM LOGS\nStrelka Flight Computer\n";
+	char sys_header[256] = "SYSTEM LOGS\nStrelka Flight Computer\n";
 #ifdef GIT_INFO_PRESENT
 	snprintf(sys_header, sizeof(sys_header), "%s%s\n", sys_header, GIT_INFO);
 #endif
+	// Add hardware ID
+	snprintf(sys_header, sizeof(sys_header), "%sDevice hardware ID: %d\n\n", sys_header, DBGMCU->IDCODE);
 
 	res = f_write(&SDFile, sys_header, sizeof(sys_header), (void *)&byteswritten);
 

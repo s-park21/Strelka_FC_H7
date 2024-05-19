@@ -190,10 +190,10 @@ BMX055_Handle bmx055 = { .hspi = &hspi2, .acc_CS_port = SPI2_NSS1_GPIO_Port, .ac
 };
 bool sensors_initialised;
 uint32_t device_hardware_id;
-BMX055_Data_Handle bmx055_data = { 0 };
+BMX055_Data_Handle bmx055_data = { .acc_offsets = {0.082, 0.0235, -0.0115}, .gyro_offsets = {0.00 ,0.00, 0.00}, .mag_offsets = {-18.4085, -12.6955, -6.18} };
 MS5611_Data_Handle ms5611_data = { 0 };
-ASM330_Data_Handle asm330_data = { 0 };
-ADXL375_Data_Handle adxl375_data = { 0 };
+ASM330_Data_Handle asm330_data = { .acc_offsets = {0.0395, 0.0085, -0.0405}, .gyro_offsets = {0.00 ,0.00, 0.00} };
+ADXL375_Data_Handle adxl375_data = { .acc_offsets = {0.00, 0.00, 0.00} };
 GPS_Data_Handle gps_data = { 0 };
 GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 bool gps_first_fix_logged = false;
@@ -1951,10 +1951,7 @@ void Sample_Sensors(void *argument) {
 	}
 
 	/* Init ADXL375 */
-	float offsetX = 0;
-	float offsetY = 0;
-	float offsetZ = 0;
-	if (ADXL375_init(&adxl375, offsetX, offsetY, offsetZ)) {
+	if (ADXL375_init(&adxl375, adxl375_data.acc_offsets[0], adxl375_data.acc_offsets[1], adxl375_data.acc_offsets[2])) {
 		store_sys_log("Error: ADXL375 failed to initialise");
 //		Non_Blocking_Error_Handler();
 	}
@@ -2014,8 +2011,7 @@ void Sample_Sensors(void *argument) {
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, BMX055_Gyro);
 			float gyro_data[3];
 			BMX055_readGyro(&bmx055, gyro_data);
-			BMX055_exp_filter(bmx055_data.gyro, gyro_data, bmx055_data.gyro, sizeof(gyro_data) / sizeof(int),
-			GYRO_ALPHA);
+//			BMX055_exp_filter(bmx055_data.gyro, gyro_data, bmx055_data.gyro, sizeof(gyro_data) / sizeof(int), GYRO_ALPHA);
 			bmx055_data.gyro_updated = true;
 			// Read mag to clear drdy interrupt - very hacky fix
 			BMX055_readCompensatedMag(&bmx055, bmx055_data.mag);
