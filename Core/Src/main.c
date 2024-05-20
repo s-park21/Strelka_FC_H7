@@ -184,16 +184,20 @@ void sysMonitor(void *argument);
 /* USER CODE BEGIN PFP */
 enum debug_level dbg_level = INFO;
 enum debug_level dbg;
+float mag_hard_iron_offsets_data[] = {-18.4085, -12.6955, -6.18};
+float mag_soft_iron_offsets_data[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+arm_matrix_instance_f32 mag_hard_iron_offsets;
+arm_matrix_instance_f32 mag_soft_iron_offsets;
 
 BMX055_Handle bmx055 = { .hspi = &hspi2, .acc_CS_port = SPI2_NSS1_GPIO_Port, .acc_CS_pin = SPI2_NSS1_Pin, .acc_range = BMX055_ACC_RANGE_16, .acc_bandwidth = BMX055_ACC_PMU_BW_62_5, .gyro_CS_port = SPI2_NSS2_GPIO_Port, .gyro_CS_pin = SPI2_NSS2_Pin, .gyro_range = BMX055_GYRO_RANGE_32_8, .gyro_bandwidth = BMX055_GYRO_BW_64, .mag_CS_port = SPI2_NSS3_GPIO_Port, .mag_CS_pin = SPI2_NSS3_Pin, .mag_data_rate = BMX055_MAG_DATA_RATE_30,
 
 };
 bool sensors_initialised;
 uint32_t device_hardware_id;
-BMX055_Data_Handle bmx055_data = { .acc_offsets = {0.082, 0.0235, -0.0115}, .gyro_offsets = {0.00 ,0.00, 0.00}, .mag_offsets = {-18.4085, -12.6955, -6.18} };
+BMX055_Data_Handle bmx055_data = { .acc_offsets = { 0.082, 0.0235, -0.0115 }, .gyro_offsets = { 0.00, 0.00, 0.00 }};
 MS5611_Data_Handle ms5611_data = { 0 };
-ASM330_Data_Handle asm330_data = { .acc_offsets = {0.0395, 0.0085, -0.0405}, .gyro_offsets = {0.00 ,0.00, 0.00} };
-ADXL375_Data_Handle adxl375_data = { .acc_offsets = {0.00, 0.00, 0.00} };
+ASM330_Data_Handle asm330_data = { .acc_offsets = { 0.0395, 0.0085, -0.0405 }, .gyro_offsets = { 0.00, 0.00, 0.00 } };
+ADXL375_Data_Handle adxl375_data = { .acc_offsets = { 0.00, 0.00, 0.00 } };
 GPS_Data_Handle gps_data = { 0 };
 GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 bool gps_first_fix_logged = false;
@@ -375,6 +379,12 @@ int main(void) {
 	if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK) {
 		Non_Blocking_Error_Handler();
 	}
+
+	// Add soft and hard iron offsets to magnetometer library
+	arm_mat_init_f32(&mag_hard_iron_offsets, 3, 1, mag_hard_iron_offsets_data);
+	arm_mat_init_f32(&mag_soft_iron_offsets, 3, 3, mag_soft_iron_offsets_data);
+	bmx055.mag_hard_iron_offsets = mag_hard_iron_offsets;
+	bmx055.mag_soft_iron_offsets = mag_soft_iron_offsets;
 
 	// Init system logging data structures
 	sys_logs_pos_idx = 0;
@@ -1339,21 +1349,6 @@ uint32_t millis() {
 	return pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS;
 }
 
-// FDCAN1 Callback
-//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
-//	if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
-//		/* Retreive Rx messages from RX FIFO0 */
-//		if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader1, RxData1) != HAL_OK) {
-//			// TODO: Report error
-//		}
-//
-//		if (HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
-//			// TODO: Report error
-//		}
-//		HAL_GPIO_TogglePin(INDICATOR_GPIO_Port, INDICATOR_Pin);
-//	}
-//}
-
 void Non_Blocking_Error_Handler() {
 	while (1) {
 		HAL_GPIO_WritePin(INDICATOR_GPIO_Port, INDICATOR_Pin, GPIO_PIN_SET);
@@ -1369,8 +1364,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-	uint32_t errorCode;
 	if (huart == &huart2) {
+		uint32_t errorCode;
 		errorCode = HAL_UART_GetError(&huart2);
 		HAL_UART_Receive_DMA(&huart2, gps_data.gps_buffer, sizeof(gps_data.gps_buffer));
 	}
@@ -1549,7 +1544,7 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 		FRESULT res = SD_get_free_space_kB(&available_flash_memory_kB);
 		if (res != FR_OK) {
 			SD_card.flash_good = false;
-			// TODO: Handle error
+			store_sys_log("Error: Unable to read flash memory free space");
 		}
 		flash_state_res flash_state_pkt = { .flash_good = SD_card.flash_good, .flash_write_speed = SD_card.log_frequency, .available_flash_memory = available_flash_memory_kB, };
 		send_rf_packet(FLASH_MEMORY_STATE_RES, (uint8_t*) &flash_state_pkt, sizeof(flash_state_pkt));
@@ -1619,8 +1614,9 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 		case 0:
 			float available_flash_memory_kB;
 			SD_get_free_space_kB(&available_flash_memory_kB);
+			float batVol = 0;
 			if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
-				float batVol = calculateBatteryVoltage(&hadc1);
+				batVol = calculateBatteryVoltage(&hadc1);
 				osSemaphoreRelease(ADC1SemaphoreHandle);
 			}
 			system_state_packet_type_0_res response_packet = { .acc1X = bmx055_data.accel[0], .acc1Y = bmx055_data.accel[1], .acc1Z = bmx055_data.accel[2], .acc1_good = bmx055.acc_good, .acc2X = asm330_data.accel[0], .acc2Y = asm330_data.accel[0], .acc2Z = asm330_data.accel[0], .acc2_good = asm330.acc_good, .arm_drogue_state = system_state.drogue_arm_state, .arm_main_state = system_state.main_arm_state, .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .baro1_good = ms5611.baro_good, .baro1_pressure = ms5611_data.pressure, .baro1_temperature = ms5611_data.temperature, .battery_voltage = batVol, .drogue_ematch_state = system_state.drogue_ematch_state, .flash_good = SD_card.flash_good, .flash_write_speed = SD_card.log_frequency, .gps1_good = gps.gps_good, .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .gps_tracking_chirp_frequency = gps_tracker.chirp_frequency, .gps_tracking_enabled = gps_tracker.tracking_enabled, .gyro1X = bmx055_data.gyro[0], .gyro1Y = bmx055_data.gyro[1], .gyro1Z = bmx055_data.gyro[2], .gyro1_good = bmx055.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], .gyro2_good = asm330.gyro_good, .heart_beat_chirp_frequency = 0 /*TODO*/, .heart_beat_enabled = 0 /*TODO*/, .mag1X = bmx055_data.mag[0], .mag1Y = bmx055_data.mag[1], .mag1Z = bmx055_data.mag[2], .mag1_good = bmx055.mag_good, .main_ematch_state = system_state.main_ematch_state, .stream_packet_type_enabled = packet_streamer.stream_packet_type_enabled, .packet_stream_frequency = packet_streamer.packet_stream_frequency, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .flash_logging_enabled = SD_card.flash_logging_enabled, .flight_state = system_state.flight_state, };
@@ -1633,6 +1629,8 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 	case SYSTEM_REBOOT_REQ:
 		// Reboot system
 		HAL_NVIC_SystemReset();
+	default:
+			break;
 	}
 }
 
@@ -1651,6 +1649,8 @@ void send_rf_packet(uint16_t identifier, uint8_t *payload_data, size_t len) {
 	taskENTER_CRITICAL();
 	uint8_t res = LoRa_transmit(&LoRa_Handle, send_pkt, len + 15, 1000);
 	taskEXIT_CRITICAL();
+	if(res)
+		store_sys_log("Error: LoRa failed to transmit");
 	LoRa_startReceiving(&LoRa_Handle);
 }
 
@@ -1671,7 +1671,6 @@ void StartDefaultTask(void *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-		osDelay(10000);
 		if (system_state.flight_state == IDLE_ON_PAD) {
 			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
 				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
@@ -1690,6 +1689,9 @@ void StartDefaultTask(void *argument) {
 			osSemaphoreRelease(ADC1SemaphoreHandle);
 		}
 
+		// Write SD card state, continuity state and battery voltage to logs file
+		store_sys_log("Battery voltage: %fV, Drogue continuity: %d, Main continuity: %d, SD card free space: %fkB\r\n", system_state.batteryVoltage, system_state.drogue_ematch_state, system_state.main_ematch_state, system_state.available_flash_memory_kB);
+		osDelay(10000);
 	}
 	/* USER CODE END 5 */
 }
@@ -1727,7 +1729,7 @@ void State_Machine(void *argument) {
 	// TODO: Determine whether temperature barometer reads is sufficient
 	if (init_state_controller(ms5611_data.altitude, ms5611_data.pressure, ms5611_data.temperature)) {
 		// Handle error state
-		//TODO: Add log if this fails
+		store_sys_log("Error: State controller failed to initialise");
 	}
 	osStatus_t res = osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	if (res == osOK) {
@@ -1774,7 +1776,6 @@ void State_Machine(void *argument) {
 		// Remove to enable angle check
 //		angle_from_vertical = 0;
 		if (!result) {
-			// TODO: Determine why ASM330 fails occasionally
 			if (asm330.acc_good) {
 				ax = asm330_data.accel[0];
 				ay = asm330_data.accel[1];
@@ -1786,9 +1787,7 @@ void State_Machine(void *argument) {
 			}
 			bool launch_detected = detect_launch_accel(ax, ay, az, angle_from_vertical, millis());
 			if (launch_detected) {
-				char log_msg[64];
-				size_t sz = snprintf(log_msg, sizeof(log_msg), "Launch detected. Starting altitude: %f", system_state.starting_altitude);
-				store_sys_log(log_msg);
+				store_sys_log("Launch detected. Starting altitude: %f", system_state.starting_altitude);
 				break;
 			}
 		}
@@ -1843,9 +1842,7 @@ void State_Machine(void *argument) {
 		if (detect_burnout_accel(ax, ay, az, altitude, timestamp_ms)) {
 			if (!burnout_msg_logged) {
 				burnout_msg_logged = true;
-				char log_msg[64];
-				size_t sz = snprintf(log_msg, sizeof(log_msg), "Burnout detected. Altitude: %f", ms5611_data.altitude);
-				store_sys_log(log_msg);
+				store_sys_log("Burnout detected. Altitude: %f", ms5611_data.altitude);
 			}
 		}
 		// Detect if apogee has been reached
@@ -1859,9 +1856,7 @@ void State_Machine(void *argument) {
 	res = osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	deploy_drogue_parachute(DROGUE_H_GPIO_Port, DROGUE_L_GPIO_Port, DROGUE_H_Pin, DROGUE_L_Pin);
 	osSemaphoreRelease(deploymentPinsSemaphoreHandle);
-	char log_msg[64];
-	size_t sz = snprintf(log_msg, sizeof(log_msg), "Apogee detected. Altitude: %f", ms5611_data.altitude);
-	store_sys_log(log_msg);
+	store_sys_log("Apogee detected. Altitude: %f", ms5611_data.altitude);
 
 	/*
 	 * Main deploy altitude detection
@@ -1879,8 +1874,7 @@ void State_Machine(void *argument) {
 	osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000);
 	deploy_main_parachute(MAIN_H_GPIO_Port, MAIN_L_GPIO_Port, MAIN_H_Pin, MAIN_L_Pin);
 	osSemaphoreRelease(deploymentPinsSemaphoreHandle);
-	sz = snprintf(log_msg, sizeof(log_msg), "Main deploy altitude detected. Altitude: %f", ms5611_data.altitude);
-	store_sys_log(log_msg);
+	store_sys_log("Main deploy altitude detected. Altitude: %f", ms5611_data.altitude);
 
 	/*
 	 * Landing detection:
@@ -1888,15 +1882,12 @@ void State_Machine(void *argument) {
 	 * 1. The magnitude of the vehicle's vertical velocity is less than LANDING_SPEED_THRESHOLD
 	 * 2. A timeout of FLIGHT_TIME_TIMOUT
 	 */
-	// TODO
 	bool landing_detected = false;
 	while (!landing_detected) {
 		timestamp_ms = millis();
 		landing_detected = detect_landing(ms5611_data.altitude, timestamp_ms);
 	}
-
-	sz = snprintf(log_msg, sizeof(log_msg), "Landing detected. Altitude: %f", ms5611_data.altitude);
-	store_sys_log(log_msg);
+	store_sys_log("Landing detected. Altitude: %f", ms5611_data.altitude);
 
 	// Disarm all pyro channels
 	system_state.drogue_arm_state = DISARMED;
@@ -1954,6 +1945,7 @@ void Sample_Sensors(void *argument) {
 	if (ADXL375_init(&adxl375, adxl375_data.acc_offsets[0], adxl375_data.acc_offsets[1], adxl375_data.acc_offsets[2])) {
 		store_sys_log("Error: ADXL375 failed to initialise");
 //		Non_Blocking_Error_Handler();
+		adxl375.acc_good = true;
 	}
 
 	/* Init GPS */
@@ -1969,7 +1961,7 @@ void Sample_Sensors(void *argument) {
 	/* Perform system checks before arming */
 	// Check e-match continuities
 	// Check critical sensors
-	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false || 0 /*adxl375.acc_good == false*/) {
+	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false || adxl375.acc_good == false) {
 		store_sys_log("Error: Sensors failed to initialise");
 		// Alert critical sensor error code
 		Error_Handler();
@@ -1993,30 +1985,27 @@ void Sample_Sensors(void *argument) {
 		if (sensor_type & BMX055_Accel) {
 			// Clear bits corresponding to this case
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, BMX055_Accel);
-			float accel_data[3];
-			BMX055_readAccel(&bmx055, accel_data);
-			BMX055_exp_filter(bmx055_data.accel, accel_data, bmx055_data.accel, sizeof(accel_data) / sizeof(int),
-			ACCEL_ALPHA);
+			BMX055_readAccel(&bmx055, bmx055_data.accel);
+			bmx055_data.accel[0] += bmx055_data.acc_offsets[0];
+			bmx055_data.accel[1] += bmx055_data.acc_offsets[1];
+			bmx055_data.accel[2] += bmx055_data.acc_offsets[2];
+//			BMX055_exp_filter(bmx055_data.accel, accel_data, bmx055_data.accel, sizeof(accel_data) / sizeof(int),
+//			ACCEL_ALPHA);
 			bmx055_data.accel_updated = true;
-
-			// Write sensor data to stream buffer
-			// Check that buffer length has not exceeded max flash
-			// sector size + number of bytes to be written + sensor
-			// write header and crc bytes
 
 		}
 		// Check BMX055_Gyro
 		if (sensor_type & BMX055_Gyro) {
 			// Clear bits corresponding to this case
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, BMX055_Gyro);
-			float gyro_data[3];
-			BMX055_readGyro(&bmx055, gyro_data);
+			BMX055_readGyro(&bmx055, bmx055_data.gyro);
+			bmx055_data.gyro[0] += bmx055_data.gyro_offsets[0];
+			bmx055_data.gyro[1] += bmx055_data.gyro_offsets[1];
+			bmx055_data.gyro[2] += bmx055_data.gyro_offsets[2];
 //			BMX055_exp_filter(bmx055_data.gyro, gyro_data, bmx055_data.gyro, sizeof(gyro_data) / sizeof(int), GYRO_ALPHA);
 			bmx055_data.gyro_updated = true;
 			// Read mag to clear drdy interrupt - very hacky fix
 			BMX055_readCompensatedMag(&bmx055, bmx055_data.mag);
-
-			// Write sensor data to stream buffer
 		}
 		// Check BMX055_Mag
 		if (sensor_type & BMX055_Mag) {
@@ -2024,8 +2013,6 @@ void Sample_Sensors(void *argument) {
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, BMX055_Mag);
 			BMX055_readCompensatedMag(&bmx055, bmx055_data.mag);
 			bmx055_data.mag_updated = true;
-
-			// Write sensor data to stream buffer
 		}
 		// Check asm330_Accel
 		if (sensor_type & ASM330_Accel) {
@@ -2034,9 +2021,10 @@ void Sample_Sensors(void *argument) {
 			if (ASM330_readAccel(&asm330, asm330_data.accel)) {
 				// TODO: Handle error
 			}
+			asm330_data.accel[0] += asm330_data.acc_offsets[0];
+			asm330_data.accel[1] += asm330_data.acc_offsets[1];
+			asm330_data.accel[2] += asm330_data.acc_offsets[2];
 			asm330_data.accel_updated = true;
-
-			// Write sensor data to stream buffer
 		}
 		// Check asm330_Gyro
 		if (sensor_type & ASM330_Gyro) {
@@ -2045,9 +2033,10 @@ void Sample_Sensors(void *argument) {
 			if (ASM330_readGyro(&asm330, asm330_data.gyro)) {
 				// TODO: Handle error
 			}
+			asm330_data.gyro[0] += asm330_data.gyro_offsets[0];
+			asm330_data.gyro[1] += asm330_data.gyro_offsets[1];
+			asm330_data.gyro[2] += asm330_data.gyro_offsets[2];
 			asm330_data.gyro_updated = true;
-
-			// Write sensor data to stream buffer
 		}
 		// Check MAX_10S_GPS
 		if (sensor_type & MAX_10S_GPS) {
@@ -2060,7 +2049,7 @@ void Sample_Sensors(void *argument) {
 				gps_data.initial_longitude = minmea_tocoord(&gps.gga_frame.longitude);
 				gps_data.initial_altitude = minmea_tofloat(&gps.gga_frame.altitude);
 
-				if(!isnanf(gps_data.initial_latitude) && !isnanf(gps_data.initial_longitude) && !isnanf(gps_data.initial_altitude)) {
+				if (!isnanf(gps_data.initial_latitude) && !isnanf(gps_data.initial_longitude) && !isnanf(gps_data.initial_altitude)) {
 					gps_first_fix_logged = true;
 				}
 			}
@@ -2114,7 +2103,7 @@ void Sample_Baro(void *argument) {
 	/* USER CODE BEGIN Sample_Baro */
 	/* Init MS5611 */
 	// Wait until barometer is initialised
-	while (!ms5611.baro_good) {
+	while (!ms5611.baro_good && !adxl375.acc_good) {
 		osDelay(10);
 	}
 	/* Infinite loop */
@@ -2122,7 +2111,7 @@ void Sample_Baro(void *argument) {
 #ifndef RUN_HITL
 		// Read from ADXL375
 		if (ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
-			// TODO: Handle error
+			store_sys_log("Error: Failed to read from ADXL375");
 		}
 
 		// Read from baro
@@ -2154,7 +2143,7 @@ void Data_Logging(void *argument) {
 	// Initialise SD card
 	FRESULT res = SD_init();
 	if (res != FR_OK) {
-		// TODO: Handle error
+		store_sys_log("Error: Failed initialise SD card");
 		SD_card.flash_good = false;
 		Non_Blocking_Error_Handler();
 	}
@@ -2176,13 +2165,13 @@ void Data_Logging(void *argument) {
 	xLastWakeTime = xTaskGetTickCount();
 
 	// Variables to store size of each write within each group
-	size_t accel_write_sz = 0, gyro_write_sz = 0, mag_write_sz = 0, baro_write_sz = 0, gps_write_sz = 0, sys_state_write_sz = 0, ekf_write_sz = 0, internal_sm_write_sz = 0, binary_sensor_write_sz = 0;
+	size_t accel_write_sz = 0, gyro_write_sz = 0, mag_write_sz = 0, baro_write_sz = 0, gps_write_sz = 0, ekf_write_sz = 0, internal_sm_write_sz = 0;
 
 	// Buffers to store grouped write data
-	uint8_t accel_buffer[_MAX_SS], gyro_buffer[_MAX_SS], mag_buffer[_MAX_SS], baro_buffer[_MAX_SS], gps_buffer[_MAX_SS], sys_state_buffer[_MAX_SS], ekf_buffer[_MAX_SS], internal_sm_buffer[_MAX_SS];
+	uint8_t accel_buffer[_MAX_SS], gyro_buffer[_MAX_SS], mag_buffer[_MAX_SS], baro_buffer[_MAX_SS], gps_buffer[_MAX_SS], ekf_buffer[_MAX_SS], internal_sm_buffer[_MAX_SS];
 
 	// Variables to store amount written in each group
-	size_t accel_sz = 0, gyro_sz = 0, mag_sz = 0, baro_sz = 0, gps_sz = 0, sys_state_sz = 0, ekf_sz = 0, internal_sm_sz = 0;
+	size_t accel_sz = 0, gyro_sz = 0, mag_sz = 0, baro_sz = 0, gps_sz = 0, ekf_sz = 0, internal_sm_sz = 0;
 	size_t prefill_counter = 0;
 
 	const uint8_t max_batch_size = 100;
@@ -2198,7 +2187,7 @@ void Data_Logging(void *argument) {
 			// Append data to buffer arrays
 			if (prefill_counter < max_batch_size) {
 				if (accel_sz <= sizeof(accel_buffer) - accel_write_sz) {
-					accel_write_sz = snprintf((char*) &accel_buffer[accel_sz], sizeof(accel_buffer) - accel_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2], adxl375_data.accel[0] , adxl375_data.accel[1], adxl375_data.accel[2]);
+					accel_write_sz = snprintf((char*) &accel_buffer[accel_sz], sizeof(accel_buffer) - accel_sz, "%.0lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", micros(), asm330_data.accel[0], asm330_data.accel[1], asm330_data.accel[2], bmx055_data.accel[0], bmx055_data.accel[1], bmx055_data.accel[2], adxl375_data.accel[0], adxl375_data.accel[1], adxl375_data.accel[2]);
 					// Store previous write size
 					accel_sz += accel_write_sz;
 				} else
@@ -2245,16 +2234,6 @@ void Data_Logging(void *argument) {
 						gps_sz += gps_write_sz;
 					} else
 						prefill_counter = max_batch_size;
-					if (sys_state_sz <= sizeof(sys_state_buffer) - sys_state_write_sz) {
-						float batVol;
-						if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
-							batVol = calculateBatteryVoltage(&hadc1);
-							osSemaphoreRelease(ADC1SemaphoreHandle);
-						}
-						sys_state_write_sz = snprintf((char*) &sys_state_buffer[sys_state_sz], sizeof(sys_state_buffer) - sys_state_sz, "%.0lu,%d,%d,%d,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%.0lu,%0.2f,%0.2f\r\n", micros(), system_state.flight_state, system_state.drogue_ematch_state, system_state.main_ematch_state, system_state.launch_time, system_state.starting_altitude, system_state.burnout_time, system_state.burnout_altitude, system_state.drogue_deploy_time, system_state.drogue_deploy_altitude, system_state.main_deploy_time, system_state.main_deploy_altitude, system_state.landing_time, system_state.landing_altitude, batVol);
-						sys_state_sz += sys_state_write_sz;
-					} else
-						prefill_counter = max_batch_size;
 				}
 
 				prefill_counter++;
@@ -2287,7 +2266,6 @@ void Data_Logging(void *argument) {
 				mag_sz = 0;
 				baro_sz = 0;
 				gps_sz = 0;
-				sys_state_sz = 0;
 				ekf_sz = 0;
 				internal_sm_sz = 0;
 			}
@@ -2439,7 +2417,7 @@ void Extended_Kalman_Filter(void *argument) {
 
 		// Update state with barometer
 		if (ms5611.baro_good) {
-			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature+273.15f, system_state.starting_altitude);
+			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature + 273.15f, system_state.starting_altitude);
 			if (res) {
 				printf("Log error here");
 			}

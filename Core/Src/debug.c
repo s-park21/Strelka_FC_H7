@@ -39,7 +39,11 @@ char sys_logs_buff[128];		// Buffer to hold the system logs that need to be writ
 uint32_t sys_logs_pos_idx = 0;		// Varible to hold the current offset position within the buffer
 bool sys_logs_rdy = false;				// Flag to indicate when sys logs are ready to be written to SD
 
-void store_sys_log(char *log_msg) {
+void store_sys_log(char *log_msg, ...) {
+	va_list args;
+	va_start(args, log_msg);
+	vprintf(log_msg, args);
+	va_end(args);
 	// Add system time and new line character to data
 	char msg[160];
 	taskENTER_CRITICAL();

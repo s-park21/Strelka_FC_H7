@@ -372,7 +372,9 @@ arm_status BMX055_readCompensatedMag(BMX055_Handle *bmx055, float *mag) {
 	// Read raw mag data
 	BMX055_readRawMag(bmx055, mag);
 
-	// Apply scale factor to raw mag data
+
+
+//	// Apply scale factor to raw mag data
 	mag[0] *= bmx055->mag_rescale_xy;
 	mag[1] *= bmx055->mag_rescale_xy;
 	mag[2] *= bmx055->mag_rescale_z;

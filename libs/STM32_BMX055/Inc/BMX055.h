@@ -235,6 +235,9 @@
 #define BMX055_MAG_POW_CTL_SUSPEND_MODE	    0b00000000
 /// @}
 
+#define BMM150_OVERFLOW_ADCVAL_XYAXES_FLIP        INT16_C(-4096)
+#define BMM150_OVERFLOW_ADCVAL_ZAXIS_HALL         INT16_C(-16384)
+
 typedef struct {
 	SPI_HandleTypeDef *hspi;
 	/* Accelerometer paramters */
