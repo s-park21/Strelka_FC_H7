@@ -16,16 +16,15 @@
  * normal_vector (output): the normal vector of current_vec and desired_vec
  * Returns: controller_result
  */
-uint8_t calculate_attitude_error(arm_matrix_instance_f32 *current_vec, arm_matrix_instance_f32 *desired_vec, float *theta, arm_matrix_instance_f32 *normal_vector)
-{
+uint8_t calculate_attitude_error(arm_matrix_instance_f32 *current_vec, arm_matrix_instance_f32 *desired_vec, float *theta, arm_matrix_instance_f32 *normal_vector) {
 	// Normalise current state vector
 	float32_t qu_norm = sqrt(current_vec->pData[0] * current_vec->pData[0] + current_vec->pData[1] * current_vec->pData[1] + current_vec->pData[2] * current_vec->pData[2] + current_vec->pData[3] * current_vec->pData[3]);
 	arm_matrix_instance_f32 current_vec_norm;
-	float32_t current_vec_norm_data[4] = {current_vec->pData[0] / qu_norm, current_vec->pData[1] / qu_norm, current_vec->pData[2] / qu_norm, current_vec->pData[3] / qu_norm};
+	float32_t current_vec_norm_data[4] = { current_vec->pData[0] / qu_norm, current_vec->pData[1] / qu_norm, current_vec->pData[2] / qu_norm, current_vec->pData[3] / qu_norm };
 	arm_mat_init_f32(&current_vec_norm, 4, 1, current_vec_norm_data);
 
 	arm_matrix_instance_f32 body_vec;
-	float32_t body_vec_data[3] = {1, 0, 0};
+	float32_t body_vec_data[3] = { 1, 0, 0 };
 	arm_mat_init_f32(&body_vec, 3, 1, body_vec_data);
 
 	arm_matrix_instance_f32 rot_mat;
@@ -75,11 +74,9 @@ uint8_t calculate_attitude_error(arm_matrix_instance_f32 *current_vec, arm_matri
  * Inputs: qu - 4x1 quaternion column vector, dir_cos - 3x3 direction cosine matrix
  * Returns: controller_result
  */
-uint8_t EP2C(arm_matrix_instance_f32 *qu, arm_matrix_instance_f32 *dir_cos)
-{
+uint8_t EP2C(arm_matrix_instance_f32 *qu, arm_matrix_instance_f32 *dir_cos) {
 	// Check inputs
-	if (qu->numCols != 1 || qu->numRows != 4 || dir_cos->numCols != 3 || dir_cos->numRows != 3)
-	{
+	if (qu->numCols != 1 || qu->numRows != 4 || dir_cos->numCols != 3 || dir_cos->numRows != 3) {
 		return 2;
 	}
 	float32_t q0 = qu->pData[0];
@@ -105,10 +102,8 @@ uint8_t EP2C(arm_matrix_instance_f32 *qu, arm_matrix_instance_f32 *dir_cos)
  * Inputs: a - 3x1 column vector, b - 3x1 column vector, res - 3x1 cross product vector
  * Returns: controller_result
  */
-uint8_t vector_cross_product(arm_matrix_instance_f32 *a, arm_matrix_instance_f32 *b, arm_matrix_instance_f32 *res)
-{
-	if (a->numRows < 3 || b->numRows < 3 || a->numCols > 1 || b->numCols > 1)
-	{
+uint8_t vector_cross_product(arm_matrix_instance_f32 *a, arm_matrix_instance_f32 *b, arm_matrix_instance_f32 *res) {
+	if (a->numRows < 3 || b->numRows < 3 || a->numCols > 1 || b->numCols > 1) {
 		return 2; // input vectors must have at least 3 elements
 	}
 
@@ -132,8 +127,7 @@ uint8_t vector_cross_product(arm_matrix_instance_f32 *a, arm_matrix_instance_f32
  * Function to deploy drogue parachute
  * Returns: void
  */
-void deploy_drogue_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t H_pin, uint16_t L_pin)
-{
+void deploy_drogue_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t H_pin, uint16_t L_pin) {
 	HAL_GPIO_WritePin(H_port, H_pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_SET);
 	osDelay(2000);
@@ -145,8 +139,7 @@ void deploy_drogue_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_
  * Function to deploy main parachute
  * Returns: void
  */
-void deploy_main_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t H_pin, uint16_t L_pin)
-{
+void deploy_main_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t H_pin, uint16_t L_pin) {
 	HAL_GPIO_WritePin(H_port, H_pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_SET);
 	osDelay(2000);
@@ -155,56 +148,32 @@ void deploy_main_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t 
 }
 
 // This function is not thread safe and must block for the entire duration
-ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint16_t L_pin, uint32_t adcChannel)
-{
+ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint16_t L_pin, uint32_t adcChannel) {
 	ematchState state;
 	HAL_StatusTypeDef res;
+	uint16_t adc_data[3];
 
 	// Set FIRE_L pin to allow for continuity sensing
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_SET);
-	ADC_ChannelConfTypeDef sConfig = {0};
-	/** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-	 */
-	if (adcChannel == ADC_CHANNEL_8)
-	{
-		// Drogue
-		sConfig.Rank = ADC_REGULAR_RANK_2;
-	}
-	else
-	{
-		// Main
-		sConfig.Rank = ADC_REGULAR_RANK_1;
-	}
-	sConfig.Channel = adcChannel;
-	sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
-	sConfig.SingleDiff = ADC_SINGLE_ENDED;
-	sConfig.OffsetNumber = ADC_OFFSET_NONE;
-	sConfig.Offset = 0;
-	sConfig.OffsetSignedSaturation = DISABLE;
-	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
-	{
-		Non_Blocking_Error_Handler();
-	}
+	osDelay(1);
 
 	// Start ADC
-	res = HAL_ADC_Start(hadc);
+	res = HAL_ADC_Start_DMA(hadc, adc_data, sizeof(adc_data) / sizeof(adc_data[0]));
 	osDelay(100);
-	res = HAL_ADC_PollForConversion(hadc, 1);
 	if (res == HAL_TIMEOUT)
 		return EMATCH_ERROR;
-	// Average readings
-	uint32_t AD_RES = 0;
-	for (int i = 0; i < 200; i++)
-	{
-		AD_RES += HAL_ADC_GetValue(hadc);
+
+	uint32_t AD_RES;
+	if (adcChannel == ADC_CHANNEL_8) {
+		// Drogue
+		AD_RES = adc_data[0];
+	} else {
+		// Main
+		AD_RES = adc_data[1];
 	}
-	AD_RES /= 200;
-	if (AD_RES > 40000)
-	{
+	if (AD_RES > 40000) {
 		state = OPEN_CIRCUIT;
-	}
-	else
-	{
+	} else {
 		state = GOOD;
 	}
 
@@ -222,16 +191,13 @@ ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint1
 // Battery voltage regression values
 #define NUM_POINTS 11
 #define NUM_COLS 2
-float battery_adc_voltage[NUM_POINTS][NUM_COLS] = {{46042, 4.2}, {45572, 4.0}, {44922, 3.8}, {44231, 3.6}, {43428, 3.4}, {42580, 3.22}, {41691, 3.0}, {40633, 2.8}, {39312, 2.6}, {38028, 2.4}};
+float battery_adc_voltage[NUM_POINTS][NUM_COLS] = { { 46042, 4.2 }, { 45572, 4.0 }, { 44922, 3.8 }, { 44231, 3.6 }, { 43428, 3.4 }, { 42580, 3.22 }, { 41691, 3.0 }, { 40633, 2.8 }, { 39312, 2.6 }, { 38028, 2.4 } };
 
-float interpolateBatteryVoltage(float adc_value, float battery_adc_voltage[NUM_POINTS][NUM_COLS])
-{
+float interpolateBatteryVoltage(float adc_value, float battery_adc_voltage[NUM_POINTS][NUM_COLS]) {
 	int idx = 0;
 	// Find the two closest points for linear interpolation
-	for (idx = 0; idx < NUM_POINTS - 1; idx++)
-	{
-		if (battery_adc_voltage[idx][0] >= adc_value && battery_adc_voltage[idx + 1][0] <= adc_value)
-		{
+	for (idx = 0; idx < NUM_POINTS - 1; idx++) {
+		if (battery_adc_voltage[idx][0] >= adc_value && battery_adc_voltage[idx + 1][0] <= adc_value) {
 			break;
 		}
 	}
@@ -247,24 +213,26 @@ float interpolateBatteryVoltage(float adc_value, float battery_adc_voltage[NUM_P
 	return interpolated_voltage;
 }
 
-float convertToVoltage(uint16_t adcValue)
-{
-	return (adcValue / (float)ADC_MAX_VALUE) * V_REF;
+float convertToVoltage(uint16_t adcValue) {
+	return (adcValue / (float) ADC_MAX_VALUE) * V_REF;
 }
 
 // This function is not thread safe and must block for the entire duration
-float calculateBatteryVoltage(ADC_HandleTypeDef *hadc)
-{
+float calculateBatteryVoltage(ADC_HandleTypeDef *hadc) {
 	HAL_StatusTypeDef res;
 
-	ADC_ChannelConfTypeDef sConfig = {0};
+	ADC_ChannelConfTypeDef sConfig = { 0 };
 	/** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
 	 */
 	sConfig.Channel = ADC_CHANNEL_4;
 	sConfig.Rank = ADC_REGULAR_RANK_3;
 	sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
-	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
-	{
+	sConfig.SingleDiff = ADC_SINGLE_ENDED;
+	sConfig.OffsetNumber = ADC_OFFSET_NONE;
+	sConfig.Offset = 0;
+	sConfig.OffsetSignedSaturation = DISABLE;
+
+	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK) {
 		Non_Blocking_Error_Handler();
 	}
 

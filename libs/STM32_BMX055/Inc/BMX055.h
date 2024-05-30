@@ -29,6 +29,7 @@
 #include <string.h>
 #include "arm_math.h"
 #include <math.h>
+#include "bmm150.h"
 
 #define NUM_LOOK_BACK_CYCLES				10
 
@@ -266,6 +267,8 @@ typedef struct {
 	arm_matrix_instance_f32 mag_hard_iron_offsets; // 3x1 matrix of offsets in uT
 	arm_matrix_instance_f32 mag_soft_iron_offsets; // 3x3 matrix of scaling values in uT
 } BMX055_Handle;
+
+extern uint32_t micros();
 
 bool BMX055_init(BMX055_Handle *bmx055);
 bool BMX055_searchDevice(BMX055_Handle *bmx055);

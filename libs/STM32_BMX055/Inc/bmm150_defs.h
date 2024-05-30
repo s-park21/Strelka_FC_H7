@@ -49,7 +49,10 @@
 #else
 #include <stdint.h>
 #include <stddef.h>
+#include "main.h"
 #endif
+
+#define BMM150_USE_FLOATING_POINT
 
 /******************************************************************************/
 /*! @name       Common macros                         */
