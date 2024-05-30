@@ -1814,23 +1814,23 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-		if (system_state.flight_state == IDLE_ON_PAD) {
-			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
-				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
-					system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
-					// Read main continuity
-					system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
-					osSemaphoreRelease(ADC1SemaphoreHandle);
-				}
-				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
-			}
-		}
+//		if (system_state.flight_state == IDLE_ON_PAD) {
+//			if (osSemaphoreAcquire(deploymentPinsSemaphoreHandle, 2000) == osOK) {
+//				if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+//					system_state.drogue_ematch_state = test_continuity(&hadc1, DROGUE_L_GPIO_Port, DROGUE_L_Pin, ADC_CHANNEL_8);
+//					// Read main continuity
+//					system_state.main_ematch_state = test_continuity(&hadc1, MAIN_L_GPIO_Port, MAIN_L_Pin, ADC_CHANNEL_9);
+//					osSemaphoreRelease(ADC1SemaphoreHandle);
+//				}
+//				osSemaphoreRelease(deploymentPinsSemaphoreHandle);
+//			}
+//		}
 
 		SD_get_free_space_kB(&system_state.available_flash_memory_kB);
-		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
-			system_state.batteryVoltage = calculateBatteryVoltage(&hadc1);
-			osSemaphoreRelease(ADC1SemaphoreHandle);
-		}
+//		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
+//			system_state.batteryVoltage = calculateBatteryVoltage(&hadc1);
+//			osSemaphoreRelease(ADC1SemaphoreHandle);
+//		}
 
 		// Write SD card state, continuity state and battery voltage to logs file
 		store_sys_log("Battery voltage: %fV, Drogue continuity: %d, Main continuity: %d, SD card free space: %fkB\r\n", system_state.batteryVoltage, system_state.drogue_ematch_state, system_state.main_ematch_state, system_state.available_flash_memory_kB);

@@ -219,8 +219,10 @@ uint8_t ASM330_readGyro(ASM330_handle *asm330, float *gyro) {
 static int32_t platform_write(void *handle, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_RESET);
+	taskENTER_CRITICAL();
 	HAL_SPI_Transmit(handle, &reg, 1, 1000);
 	HAL_SPI_Transmit(handle, (uint8_t*) bufp, len, 1000);
+	taskEXIT_CRITICAL();
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_SET);
 	return 0;
 }
@@ -239,8 +241,10 @@ static int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t 
 {
 	reg |= 0x80;
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_RESET);
+	taskENTER_CRITICAL();
 	HAL_StatusTypeDef res = HAL_SPI_Transmit(handle, &reg, 1, 1000);
 	res = HAL_SPI_Receive(handle, bufp, len, 1000);
+	taskEXIT_CRITICAL();
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_SET);
 	return res;
 }
