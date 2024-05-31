@@ -148,32 +148,56 @@ void deploy_main_parachute(GPIO_TypeDef *H_port, GPIO_TypeDef *L_port, uint16_t 
 }
 
 // This function is not thread safe and must block for the entire duration
-ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint16_t L_pin, uint32_t adcChannel) {
+ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint16_t L_pin, uint32_t adcChannel)
+{
 	ematchState state;
 	HAL_StatusTypeDef res;
-	uint16_t adc_data[3];
 
 	// Set FIRE_L pin to allow for continuity sensing
 	HAL_GPIO_WritePin(L_port, L_pin, GPIO_PIN_SET);
-	osDelay(1);
+	ADC_ChannelConfTypeDef sConfig = {0};
+	/** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+	 */
+	if (adcChannel == ADC_CHANNEL_8)
+	{
+		// Drogue
+		sConfig.Rank = ADC_REGULAR_RANK_2;
+	}
+	else
+	{
+		// Main
+		sConfig.Rank = ADC_REGULAR_RANK_1;
+	}
+	sConfig.Channel = adcChannel;
+	sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
+	sConfig.SingleDiff = ADC_SINGLE_ENDED;
+	sConfig.OffsetNumber = ADC_OFFSET_NONE;
+	sConfig.Offset = 0;
+	sConfig.OffsetSignedSaturation = DISABLE;
+	if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
+	{
+		Non_Blocking_Error_Handler();
+	}
 
 	// Start ADC
-	res = HAL_ADC_Start_DMA(hadc, adc_data, sizeof(adc_data) / sizeof(adc_data[0]));
+	res = HAL_ADC_Start(hadc);
 	osDelay(100);
+	res = HAL_ADC_PollForConversion(hadc, 1);
 	if (res == HAL_TIMEOUT)
 		return EMATCH_ERROR;
-
-	uint32_t AD_RES;
-	if (adcChannel == ADC_CHANNEL_8) {
-		// Drogue
-		AD_RES = adc_data[0];
-	} else {
-		// Main
-		AD_RES = adc_data[1];
+	// Average readings
+	uint32_t AD_RES = 0;
+	for (int i = 0; i < 200; i++)
+	{
+		AD_RES += HAL_ADC_GetValue(hadc);
 	}
-	if (AD_RES > 40000) {
+	AD_RES /= 200;
+	if (AD_RES > 40000)
+	{
 		state = OPEN_CIRCUIT;
-	} else {
+	}
+	else
+	{
 		state = GOOD;
 	}
 

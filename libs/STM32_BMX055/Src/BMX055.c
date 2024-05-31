@@ -98,7 +98,15 @@ bool BMX055_init(BMX055_Handle *bmx055) {
 	struct bmm150_int_ctrl_settings int_settings;
 	int_settings.drdy_pin_en = 1;
 	int_settings.drdy_polarity = 0;
+	int_settings.data_overrun_en = 0;
+	int_settings.high_int_en = 0;
+	int_settings.high_threshold = 0;
 	int_settings.int_latch = 0;
+	int_settings.int_pin_en = 0;
+	int_settings.int_polarity = 0;
+	int_settings.low_int_en = 0;
+	int_settings.low_threshold = 0;
+	int_settings.overflow_int_en = 0;
 
 	mag_dev.intf = BMM150_SPI_INTF;
 	mag_dev.intf_ptr = bmx055;
@@ -112,7 +120,7 @@ bool BMX055_init(BMX055_Handle *bmx055) {
 	int8_t result = bmm150_get_sensor_settings(&mag_settings, &mag_dev);
 	mag_settings.data_rate = BMM150_DATA_RATE_30HZ;
 	mag_settings.int_settings = int_settings;
-	result = bmm150_set_sensor_settings(BMM150_SEL_DATA_RATE | BMM150_SEL_DRDY_PIN_EN | BMM150_SEL_DRDY_POLARITY, &mag_settings, &mag_dev);
+	result = bmm150_set_sensor_settings(0xFFFF, &mag_settings, &mag_dev);
 
 	if (BMX055_searchDevice(bmx055)) {
 		BMX055_configuration(bmx055);
