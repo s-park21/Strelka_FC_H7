@@ -1686,7 +1686,7 @@ void StartDefaultTask(void *argument) {
 			}
 		}
 
-//		SD_get_free_space_kB(&system_state.available_flash_memory_kB);  // This appears to cause hard faults
+		SD_get_free_space_kB(&system_state.available_flash_memory_kB);
 		if (osSemaphoreAcquire(ADC1SemaphoreHandle, 2000) == osOK) {
 			system_state.batteryVoltage = calculateBatteryVoltage(&hadc1);
 			osSemaphoreRelease(ADC1SemaphoreHandle);
