@@ -12,6 +12,7 @@
 */
 ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, float offsetZ)
 {
+	HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
     // Read device ID
     uint8_t dev_id;
     ADXL375_readSPI(adxl, (uint8_t)DEVICE_ID, &dev_id, sizeof(dev_id));
@@ -123,9 +124,10 @@ void ADXL375_readSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size
     uint8_t packet[20];
 
     HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_RESET);
-    HAL_SPI_TransmitReceive(adxl->hspi, &register_addr, packet, len + 1, 1000);
+    HAL_SPI_Transmit(adxl->hspi, &register_addr, 1, 1000);
+    HAL_SPI_Receive(adxl->hspi, packet, len, 1000);
     HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
 
     // Copy data into "data" spot in memory
-    memcpy(data, &packet[1], len);
+    memcpy(data, packet, len);
 }

@@ -158,6 +158,7 @@ void LoRa_setModulation(LoRa *_LoRa, int mode)
 void LoRa_readReg(LoRa *_LoRa, uint8_t *address, uint16_t r_length, uint8_t *output, uint16_t w_length)
 {
 	HAL_StatusTypeDef res;
+	HAL_Delay(1);
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_RESET);
 	res = HAL_SPI_Transmit(_LoRa->hSPIx, address, r_length, TRANSMIT_TIMEOUT);
 	while (HAL_SPI_GetState(_LoRa->hSPIx) != HAL_SPI_STATE_READY)
@@ -166,6 +167,7 @@ void LoRa_readReg(LoRa *_LoRa, uint8_t *address, uint16_t r_length, uint8_t *out
 	while (HAL_SPI_GetState(_LoRa->hSPIx) != HAL_SPI_STATE_READY)
 		;
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_SET);
+	HAL_Delay(1);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -182,6 +184,7 @@ void LoRa_readReg(LoRa *_LoRa, uint8_t *address, uint16_t r_length, uint8_t *out
  \* ----------------------------------------------------------------------------- */
 void LoRa_writeReg(LoRa *_LoRa, uint8_t *address, uint16_t r_length, uint8_t *values, uint16_t w_length)
 {
+	HAL_Delay(1);
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(_LoRa->hSPIx, address, r_length, TRANSMIT_TIMEOUT);
 	while (HAL_SPI_GetState(_LoRa->hSPIx) != HAL_SPI_STATE_READY)
@@ -190,6 +193,7 @@ void LoRa_writeReg(LoRa *_LoRa, uint8_t *address, uint16_t r_length, uint8_t *va
 	while (HAL_SPI_GetState(_LoRa->hSPIx) != HAL_SPI_STATE_READY)
 		;
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_SET);
+	HAL_Delay(1);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -441,6 +445,7 @@ void LoRa_BurstWrite(LoRa *_LoRa, uint8_t address, uint8_t *value, uint8_t lengt
 	addr = address | 0x80;
 
 	// NSS = 1
+	HAL_Delay(1);
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_RESET);
 	// say module thai I want to write in RegFiFo
 	HAL_SPI_Transmit(_LoRa->hSPIx, &addr, 1, TRANSMIT_TIMEOUT);
@@ -453,6 +458,7 @@ void LoRa_BurstWrite(LoRa *_LoRa, uint8_t address, uint8_t *value, uint8_t lengt
 	// NSS = 0
 	// osDelay(5);
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_SET);
+	HAL_Delay(1);
 }
 /* ----------------------------------------------------------------------------- *\
 		name        : LoRa_isvalid

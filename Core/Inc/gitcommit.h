@@ -1,2 +1,2 @@
 #define GIT_INFO_PRESENT
- static const char* GIT_INFO = "Version Information=[b0a88c9762ff3234a0d63e45950b96cb9bb25f86, (HEAD -> EKF, origin/EKF)]\r\n";
+ static const char* GIT_INFO = "Version Information=[8a0b9ed68864d20cde419da3a643a8df738dd722, (HEAD -> EKF, origin/EKF)]\r\n";
