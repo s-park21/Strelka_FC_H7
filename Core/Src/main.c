@@ -288,7 +288,7 @@ LoRa LoRa_Handle;
 MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .baro_CS_pin = SPI4_NSS_Pin, };
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
 SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
-ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_208Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_XL_ODR_208Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
+ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_833Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_XL_ODR_833Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
 ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
@@ -383,6 +383,7 @@ int main(void)
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
+
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -1384,10 +1385,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(SPI4_NSS_GPIO_Port, SPI4_NSS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI2_NSS1_GPIO_Port, SPI2_NSS1_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, SPI2_NSS2_Pin|SPI2_NSS3_Pin|SPI2_NSS4_Pin|SPI2_NSS5_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOD, SPI2_NSS1_Pin|SPI2_NSS2_Pin|SPI2_NSS3_Pin|SPI2_NSS4_Pin
+                          |SPI2_NSS5_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
@@ -1446,7 +1445,7 @@ static void MX_GPIO_Init(void)
                           |SPI2_NSS5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : INT_1_ASM_Pin INT_2_ASM_Pin INT_1_ACCEL_Pin IO1_RF_Pin
@@ -2164,24 +2163,24 @@ void Sample_Sensors(void *argument)
 		if (sensor_type & ASM330_Accel) {
 			// Clear bits corresponding to this case
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, ASM330_Accel);
-//			if (ASM330_readAccel(&asm330, asm330_data.accel)) {
-//				// TODO: Handle error
-//			}
-//			asm330_data.accel[0] += asm330_data.acc_offsets[0];
-//			asm330_data.accel[1] += asm330_data.acc_offsets[1];
-//			asm330_data.accel[2] += asm330_data.acc_offsets[2];
+			if (ASM330_readAccel(&asm330, asm330_data.accel)) {
+				// TODO: Handle error
+			}
+			asm330_data.accel[0] += asm330_data.acc_offsets[0];
+			asm330_data.accel[1] += asm330_data.acc_offsets[1];
+			asm330_data.accel[2] += asm330_data.acc_offsets[2];
 			asm330_data.accel_updated = true;
 		}
 		// Check asm330_Gyro
 		if (sensor_type & ASM330_Gyro) {
 			// Clear bits corresponding to this case
 			ulTaskNotifyValueClear(Sample_Sensors_Handle, ASM330_Gyro);
-//			if (ASM330_readGyro(&asm330, asm330_data.gyro)) {
-//				// TODO: Handle error
-//			}
-//			asm330_data.gyro[0] += asm330_data.gyro_offsets[0];
-//			asm330_data.gyro[1] += asm330_data.gyro_offsets[1];
-//			asm330_data.gyro[2] += asm330_data.gyro_offsets[2];
+			if (ASM330_readGyro(&asm330, asm330_data.gyro)) {
+				// TODO: Handle error
+			}
+			asm330_data.gyro[0] += asm330_data.gyro_offsets[0];
+			asm330_data.gyro[1] += asm330_data.gyro_offsets[1];
+			asm330_data.gyro[2] += asm330_data.gyro_offsets[2];
 			asm330_data.gyro_updated = true;
 		}
 		// Check MAX_10S_GPS
