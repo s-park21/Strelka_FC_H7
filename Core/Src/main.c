@@ -280,7 +280,7 @@ uint32_t device_hardware_id;
 BMX055_Data_Handle bmx055_data = { .acc_offsets = { 0.082, 0.0235, -0.0115 }, .gyro_offsets = { 0.00, 0.00, 0.00 } };
 MS5611_Data_Handle ms5611_data = { 0 };
 ASM330_Data_Handle asm330_data = { .acc_offsets = { 0.0395, 0.0085, -0.0405 }, .gyro_offsets = { 0.00, 0.00, 0.00 } };
-ADXL375_Data_Handle adxl375_data = { .acc_offsets = { 0.00, 0.00, 0.00 } };
+ADXL375_Data_Handle adxl375_data = { .acc_offsets = { -0.640146789f, 3.346385321f, 2.121663704f } };
 GPS_Data_Handle gps_data = { 0 };
 GPS_Handle gps = { .gps_good = false, .gps_buffer = { 0 } };
 bool gps_first_fix_logged = false;
@@ -383,7 +383,6 @@ int main(void)
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
-
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -710,7 +709,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -724,8 +723,8 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_9;
   sConfig.Rank = ADC_REGULAR_RANK_2;
+  sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -733,7 +732,6 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -924,10 +922,10 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1760,7 +1758,7 @@ void handle_payload_data(uint8_t identifier, uint8_t *payload_data) {
 				batVol = calculateBatteryVoltage(&hadc1);
 				osSemaphoreRelease(ADC1SemaphoreHandle);
 			}
-			system_state_packet_type_0_res response_packet = { .acc1X = bmx055_data.accel[0], .acc1Y = bmx055_data.accel[1], .acc1Z = bmx055_data.accel[2], .acc1_good = bmx055.acc_good, .acc2X = asm330_data.accel[0], .acc2Y = asm330_data.accel[0], .acc2Z = asm330_data.accel[0], .acc2_good = asm330.acc_good, .arm_drogue_state = system_state.drogue_arm_state, .arm_main_state = system_state.main_arm_state, .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .baro1_good = ms5611.baro_good, .baro1_pressure = ms5611_data.pressure, .baro1_temperature = ms5611_data.temperature, .battery_voltage = batVol, .drogue_ematch_state = system_state.drogue_ematch_state, .flash_good = SD_card.flash_good, .flash_write_speed = SD_card.log_frequency, .gps1_good = gps.gps_good, .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .gps_tracking_chirp_frequency = gps_tracker.chirp_frequency, .gps_tracking_enabled = gps_tracker.tracking_enabled, .gyro1X = bmx055_data.gyro[0], .gyro1Y = bmx055_data.gyro[1], .gyro1Z = bmx055_data.gyro[2], .gyro1_good = bmx055.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], .gyro2_good = asm330.gyro_good, .heart_beat_chirp_frequency = 0 /*TODO*/, .heart_beat_enabled = 0 /*TODO*/, .mag1X = bmx055_data.mag[0], .mag1Y = bmx055_data.mag[1], .mag1Z = bmx055_data.mag[2], .mag1_good = bmx055.mag_good, .main_ematch_state = system_state.main_ematch_state, .stream_packet_type_enabled = packet_streamer.stream_packet_type_enabled, .packet_stream_frequency = packet_streamer.packet_stream_frequency, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .flash_logging_enabled = SD_card.flash_logging_enabled, .flight_state = system_state.flight_state, };
+			system_state_packet_type_0_res response_packet = { .acc1X = bmx055_data.accel[0], .acc1Y = bmx055_data.accel[1], .acc1Z = bmx055_data.accel[2], .acc1_good = bmx055.acc_good, .acc2X = asm330_data.accel[0], .acc2Y = asm330_data.accel[0], .acc2Z = asm330_data.accel[0], .acc2_good = asm330.acc_good, .arm_drogue_state = system_state.drogue_arm_state, .arm_main_state = system_state.main_arm_state, .available_flash_memory = available_flash_memory_kB, .baro1_altitude = ms5611_data.altitude, .baro1_good = ms5611.baro_good, .baro1_pressure = ms5611_data.pressure, .baro1_temperature = ms5611_data.temperature, .battery_voltage = batVol, .drogue_ematch_state = system_state.drogue_ematch_state, .flash_good = SD_card.flash_good, .flash_write_speed = SD_card.log_frequency, .gps1_good = gps.gps_good, .gps1_latitude = minmea_tocoord(&gps.gga_frame.latitude), .gps1_longitude = minmea_tocoord(&gps.gga_frame.longitude), .gps1_satellites_tracked = gps.gga_frame.satellites_tracked, .gps_tracking_chirp_frequency = gps_tracker.chirp_frequency, .gps_tracking_enabled = gps_tracker.tracking_enabled, .gyro1X = bmx055_data.gyro[0], .gyro1Y = bmx055_data.gyro[1], .gyro1Z = bmx055_data.gyro[2], .gyro1_good = bmx055.gyro_good, .gyro2X = asm330_data.gyro[0], .gyro2Y = asm330_data.gyro[1], .gyro2Z = asm330_data.gyro[2], .gyro2_good = asm330.gyro_good, .heart_beat_chirp_frequency = 0 /*TODO*/, .heart_beat_enabled = 0 /*TODO*/, .mag1X = bmx055_data.mag[0], .mag1Y = bmx055_data.mag[1], .mag1Z = bmx055_data.mag[2], .mag1_good = bmx055.mag_good, .main_ematch_state = system_state.main_ematch_state, .stream_packet_type_enabled = packet_streamer.stream_packet_type_enabled, .packet_stream_frequency = packet_streamer.packet_stream_frequency, .timestamp = pdMS_TO_TICKS(xTaskGetTickCount()) * portTICK_PERIOD_MS, .flash_logging_enabled = SD_card.flash_logging_enabled, .flight_state = system_state.flight_state, .quaternion_q1 = ekf.state_vec_data[0], .quaternion_q2 = ekf.state_vec_data[1], .quaternion_q3 = ekf.state_vec_data[2], .quaternion_q4 = ekf.state_vec_data[3]};
 			send_rf_packet(SYSTEM_STATE_PACKET_TYPE_0_RES, (uint8_t*) &response_packet, sizeof(response_packet));
 			break;
 		default:
@@ -1917,7 +1915,8 @@ void State_Machine(void *argument)
 		arm_mat_init_f32(&qu, 4, 1, qu_data);
 		uint8_t result = calculate_attitude_error(&qu, &up_vec, &angle_from_vertical, &normal_vector);
 		// Remove to enable angle check
-//		angle_from_vertical = 0;
+		angle_from_vertical = 0;
+
 		if (!result) {
 			if (asm330.acc_good) {
 				ax = asm330_data.accel[0];
@@ -2260,6 +2259,10 @@ void Sample_Baro(void *argument)
 		if (ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
 			store_sys_log("Error: Failed to read from ADXL375");
 		}
+		float x = adxl375_data.accel[0];
+		float y = adxl375_data.accel[1];
+		adxl375_data.accel[0] = -y;
+		adxl375_data.accel[1] = x;
 
 		// Read from baro
 		float pressure_reading = (float) MS5611_readPressure(&ms5611, 1);
@@ -2567,20 +2570,21 @@ void Extended_Kalman_Filter(void *argument)
 		}
 
 		// Update state with barometer
-		if (ms5611.baro_good) {
-			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature + 273.15f, system_state.starting_altitude);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+//		if (ms5611.baro_good) {
+//			res = EKF_fs_update_baro(&ekf, ms5611_data.pressure, system_state.starting_pressure, system_state.starting_temperature + 273.15f, system_state.starting_altitude);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0 && !isnanf(gps_data.initial_latitude)) {
-			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
-			if (res) {
-				printf("Log error here");
-			}
-		}
+		// TODO: Add check for NaN of actual data
+//		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0 && !isnanf(gps_data.initial_latitude)) {
+//			res = EKF_fs_update_gps(&ekf, minmea_tocoord(&gps.gga_frame.latitude), minmea_tocoord(&gps.gga_frame.longitude), minmea_tofloat(&gps.gga_frame.altitude), gps_data.initial_latitude, gps_data.initial_longitude, gps_data.initial_altitude);
+//			if (res) {
+//				printf("Log error here");
+//			}
+//		}
 
 		// Update state with magnetometer
 //		if (bmx055.mag_good && millis() - ekf_start_time >= 3000) {
