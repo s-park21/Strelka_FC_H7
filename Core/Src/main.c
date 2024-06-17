@@ -2180,6 +2180,26 @@ void Data_Logging(void *argument) {
 
 	const uint8_t max_batch_size = 100;
 
+#ifdef RUN_HITL
+		/*
+		 * If RUN_HITL is defined, this code will read sensor data from files stored
+		 * in the flash memory and load that data into the real data structures.
+		 * This will simulate the device operating in the conditions that the
+		 * simulated data was captured in.
+		 * There must be a folder called /HITL containing a file called /data.csv.
+		 * This data must carry data in the following format:
+		 * timestamp,accel1X,accel1Z,accel1Z,accel2X,accel2Z,accel2Z,accel3X,accel3Z,accel3Z,gyro1X,gyro1Y,gyro1Z,gyro2X,gyro2Y,gyro2Z,mag1X,mag1Y,mag1Z,baro_altitude,baro_pressure,baro_temperature,gps_latitude,gps_longitude,gps_altitude\n
+		 */
+		// Check that simulated data files exist
+		bool do_hitl = false;
+		FILINFO dir_info;
+		FRESULT fr;
+		fr = f_stat("/HITL", &dir_info);
+		if (fr == FR_OK) {
+			do_hitl = true;
+		}
+#endif // RUN_HITL
+
 	for (;;) {
 		if (SD_card.flash_logging_enabled) {
 			// Write headers if not done already
@@ -2280,6 +2300,97 @@ void Data_Logging(void *argument) {
 		} else {
 			osDelay(1000);
 		}
+#ifdef RUN_HITL
+		if(do_hitl) {
+			// Open file
+			uint32_t bytes_read;
+			uint32_t read_timestamp = 0;
+			if (osSemaphoreAcquire(SDMMCSemaphoreHandle, 2000) == osOK) {
+				res = f_open(&SDFile, "/HITL/data.csv", FA_READ);
+				if (res == FR_OK) {
+					// Loop to find closest data point to current system time
+					while(read_timestamp < micros()) {
+						char read_chr = '';
+						while(read_chr != '\n') {
+							res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
+						}
+						// Read time stamp
+						char read_line[28];			// Assume that a timestamp cannot be longer than 28 characters
+						uint8_t num_chars = 0;		// Number of characters in the timestamp string
+						read_chr = '';
+						while(read_chr != ',') {
+							res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
+							read_line[num_chars] = read_chr;
+							num_chars++;
+						}
+						// Convert timestamp string to number
+						char *endptr;
+						read_timestamp = strtol(read_line, &endptr, 10);
+					}
+					// Most up to date data has been found. Read a line.
+					// timestamp,accel1X,accel1Z,accel1Z,accel2X,accel2Z,accel2Z,accel3X,accel3Z,accel3Z,gyro1X,gyro1Y,gyro1Z,gyro2X,gyro2Y,gyro2Z,mag1X,mag1Y,mag1Z,baro_altitude,baro_pressure,baro_temperature,gps_latitude,gps_longitude,gps_altitude\n
+					char read_line[512];			// Assume that a line cannot be longer than 512 characters
+					uint32_t num_chars = 0;			// Number of characters in the timestamp string
+					read_chr = '';
+					while(read_chr != '\n') {
+						res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
+						read_line[num_chars] = read_chr;
+						num_chars++;
+					}
+					// Add end of string character
+					read_line[num_chars+1] = '\0';
+
+					// Convert read line to numbers
+					float data_numbers[24];			// Array to hold all 24 floats in a single data line
+					char *endptr = read_line;
+					bool decode_good = false;
+					for(int i=0; i<sizeof(data_numbers)/sizeof(float); i++) {
+						char* prevptr = endptr;
+						float read_num = strtod(prevptr, &endptr);
+						if(endptr != prevptr && read_num != HUGE_VAL && read_num != -HUGE_VAL) {
+							// A number was decoded successfully
+							data_numbers[i] = read_num;
+						}
+						else {
+							decode_good = false;
+							break;
+						}
+						if(*endptr == '\0') {
+							// End of string has been reached
+							break;
+							decode_good = true;
+						}
+					}
+					if(decode_good) {
+						// Copy the converted floats into the relevant data structures
+						asm330_data.accel[0] = data_numbers[0];
+						asm330_data.accel[1] = data_numbers[1];
+						asm330_data.accel[2] = data_numbers[2];
+						bmx055_data.accel[0] = data_numbers[3];
+						bmx055_data.accel[1] = data_numbers[4];
+						bmx055_data.accel[2] = data_numbers[5];
+						adxl375_data.accel[0] = data_numbers[6];
+						adxl375_data.accel[1] = data_numbers[7];
+						adxl375_data.accel[2] = data_numbers[8];
+						asm330_data.gyro[0] = data_numbers[9];
+						asm330_data.gyro[1] = data_numbers[10];
+						asm330_data.gyro[2] = data_numbers[11];
+						bmx055_data.gyro[0] = data_numbers[12];
+						bmx055_data.gyro[1] = data_numbers[13];
+						bmx055_data.gyro[2] = data_numbers[14];
+						bmx055_data.mag[0] = data_numbers[15];
+						bmx055_data.mag[1] = data_numbers[16];
+						bmx055_data.mag[2] = data_numbers[17];
+						ms5611_data.pressure = data_numbers[18];
+						ms5611_data.altitude = data_numbers[19];
+						ms5611_data.temperature = data_numbers[20];
+						// TODO: Find a way to put GPS data into data structures
+					}
+				}
+				osSemaphoreRelease(SDMMCSemaphoreHandle);
+			}
+		}
+#endif // RUN_HITL
 	}
 	/* USER CODE END Data_Logging */
 }
