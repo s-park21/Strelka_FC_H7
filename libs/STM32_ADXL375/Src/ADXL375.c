@@ -12,6 +12,7 @@
 */
 ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, float offsetZ)
 {
+	HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
     // Read device ID
     uint8_t dev_id;
     ADXL375_readSPI(adxl, (uint8_t)DEVICE_ID, &dev_id, sizeof(dev_id));
@@ -27,19 +28,19 @@ ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, floa
 
     // Add calibration offsets
     // Offsets are added to the readings each cycle
-    uint8_t offset_x = (uint8_t)(offset_x / 0.196);
-    uint8_t offset_y = (uint8_t)(offset_y / 0.196);
-    uint8_t offset_z = (uint8_t)(offset_z / 0.196);
+    uint8_t offset_x = 0; //(uint8_t)(offset_x / 0.196);
+    uint8_t offset_y = 0; //(uint8_t)(offset_y / 0.196);
+    uint8_t offset_z = 0; //(uint8_t)(offset_z / 0.196);
     ADXL375_writeSPI(adxl, (uint8_t)OFSX, &offset_x, sizeof(offset_x));
     ADXL375_writeSPI(adxl, (uint8_t)OFSY, &offset_y, sizeof(offset_y));
     ADXL375_writeSPI(adxl, (uint8_t)OFSZ, &offset_z, sizeof(offset_z));
 
     // Define sensor sample rate
-    data = 0 | adxl->sample_rate;
+    data = adxl->sample_rate;
     ADXL375_writeSPI(adxl, (uint8_t)BW_RATE, &data, sizeof(data));
 
     // Configure data format
-    data = 0b00101011;
+    data = 0b00101111;
     ADXL375_writeSPI(adxl, (uint8_t)DATA_FORMAT, &data, sizeof(data));
 
     // Set FIFO buffer to stream mode and set ddry watermark to 0 bytes before triggering
@@ -53,6 +54,11 @@ ADXL375_state_t ADXL375_init(ADXL375_t *adxl, float offsetX, float offsetY, floa
     // Enable data ready interrupt
     data = 0b10000000;
     ADXL375_writeSPI(adxl, (uint8_t)INT_MAP, &data, sizeof(data));
+
+    // Set power control bits
+    data = 0b00001000;
+    ADXL375_writeSPI(adxl, (uint8_t)POWER_CTL, &data, sizeof(data));
+
 
     adxl->acc_good = true;
     return ADXL375_OK;
@@ -69,26 +75,34 @@ ADXL375_state_t ADXL375_readSensor(ADXL375_t *adxl, float *accel)
 {
     // Read all available data from FIFO
     uint8_t FIFO_data[6];
-    ADXL375_readSPI(adxl, (uint8_t)DATAX0, FIFO_data, sizeof(FIFO_data));
+    for (int i = 0; i < 6; i++) {
+        ADXL375_readSPI(adxl, (uint8_t)DATAX0 + i, &FIFO_data[i], sizeof(FIFO_data[i]));
+    }
 
     float scale_factor = 0.049; // g/LSB
-    switch (adxl->sample_rate)
-    {
-    case ADXL375_RATE_3200Hz:
-        // TODO Find scale factor for this rate
-        scale_factor = 0.049;
-        break;
-    case ADXL375_RATE_1600Hz:
-        // TODO Find scale factor for this rate
-        scale_factor = 0.049;
-        break;
-    default:
-        scale_factor = 0.049;
-        break;
+    switch (adxl->sample_rate) {
+        case ADXL375_RATE_3200Hz:
+            // TODO Find scale factor for this rate
+            scale_factor = 0.049;
+            break;
+        case ADXL375_RATE_1600Hz:
+            // TODO Find scale factor for this rate
+            scale_factor = 0.049;
+            break;
+        default:
+            scale_factor = 0.049;
+            break;
     }
-    accel[0] = (float)((FIFO_data[0] | ((FIFO_data[1] << 8) & 0xFF00)) * scale_factor);
-    accel[1] = (float)((FIFO_data[2] | ((FIFO_data[3] << 8) & 0xFF00)) * scale_factor);
-    accel[2] = (float)((FIFO_data[4] | ((FIFO_data[5] << 8) & 0xFF00)) * scale_factor);
+
+    // Combine the bytes and handle two's complement conversion
+    int16_t raw_x = (int16_t)((FIFO_data[1] << 8) | FIFO_data[0]);
+    int16_t raw_y = (int16_t)((FIFO_data[3] << 8) | FIFO_data[2]);
+    int16_t raw_z = (int16_t)((FIFO_data[5] << 8) | FIFO_data[4]);
+
+    // Convert to g
+    accel[0] = (float)raw_x * scale_factor;
+    accel[1] = (float)raw_y * scale_factor;
+    accel[2] = (float)raw_z * scale_factor;
 
     return ADXL375_OK;
 }
@@ -123,9 +137,10 @@ void ADXL375_readSPI(ADXL375_t *adxl, uint8_t register_addr, uint8_t *data, size
     uint8_t packet[20];
 
     HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_RESET);
-    HAL_SPI_TransmitReceive(adxl->hspi, &register_addr, packet, len + 1, 1000);
+    HAL_SPI_Transmit(adxl->hspi, &register_addr, 1, 1000);
+    HAL_SPI_Receive(adxl->hspi, packet, len, 1000);
     HAL_GPIO_WritePin(adxl->CS_port, adxl->CS_pin, GPIO_PIN_SET);
 
     // Copy data into "data" spot in memory
-    memcpy(data, &packet[1], len);
+    memcpy(data, packet, len);
 }

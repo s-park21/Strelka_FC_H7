@@ -23,6 +23,7 @@ typedef struct
 } SD_Handle_t;
 
 extern SD_Handle_t SD_card;
+extern osSemaphoreId_t SDMMCSemaphoreHandle;
 
 FRESULT SD_init();
 FRESULT SD_mk_root_dir();
@@ -37,7 +38,6 @@ FRESULT SD_write_ekf_data(uint32_t time_uS, float qu1, float qu2, float qu3, flo
 FRESULT SD_write_headers();
 FRESULT SD_write_binary_stream(uint8_t *buffer, size_t len);
 FRESULT SD_get_free_space_kB(float *kBytes_free);
-;
 FRESULT SD_erase_disk();
 void SD_write_accel_batch(uint8_t *accel_buffer, size_t accel_sz);
 void SD_write_gyro_batch(uint8_t *gyro_buffer, size_t gyro_sz);

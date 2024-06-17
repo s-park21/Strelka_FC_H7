@@ -1,2 +1,3 @@
 #define GIT_INFO_PRESENT
- static const char* GIT_INFO = "Version Information=[d488be2ce82d5083dda12f5e3078c7512b982a07, (HEAD -> pulsar_launch, origin/pulsar_launch)]\r\n";
+ static const char* GIT_INFO = "Version Information=[879a8c30d05b7c23ad242c667067046e7fdfd996, (HEAD -> EKF, origin/EKF)]\r\n";
+

@@ -23,7 +23,7 @@ uint8_t ASM330_Init(ASM330_handle *asm330) {
 
 	CS_up_GPIO_Port = asm330->CS_GPIO_Port;
 	CS_up_Pin = asm330->CS_Pin;
-//	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(asm330->CS_GPIO_Port, asm330->CS_Pin, GPIO_PIN_SET);
 
 	asm330->dev_ctx.write_reg = platform_write;
 	asm330->dev_ctx.read_reg = platform_read;
@@ -49,6 +49,12 @@ uint8_t ASM330_Init(ASM330_handle *asm330) {
 
 	/* Disable I3C interface. */
 	asm330lhhx_i3c_disable_set(&asm330->dev_ctx, ASM330LHHX_I3C_DISABLE);
+
+	/* Disable I2C interface. */
+	asm330lhhx_i2c_interface_set(&asm330->dev_ctx, ASM330LHHX_I2C_DISABLE);
+
+	/* Enable 4 wire SPI mode. */
+	asm330lhhx_spi_mode_set(&asm330->dev_ctx, ASM330LHHX_SPI_4_WIRE);
 
 	/* Enable Block Data Update. */
 	asm330lhhx_block_data_update_set(&asm330->dev_ctx, PROPERTY_DISABLE);
@@ -219,8 +225,10 @@ uint8_t ASM330_readGyro(ASM330_handle *asm330, float *gyro) {
 static int32_t platform_write(void *handle, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_RESET);
+	taskENTER_CRITICAL();
 	HAL_SPI_Transmit(handle, &reg, 1, 1000);
 	HAL_SPI_Transmit(handle, (uint8_t*) bufp, len, 1000);
+	taskEXIT_CRITICAL();
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_SET);
 	return 0;
 }
@@ -239,8 +247,10 @@ static int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t 
 {
 	reg |= 0x80;
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_RESET);
+	taskENTER_CRITICAL();
 	HAL_StatusTypeDef res = HAL_SPI_Transmit(handle, &reg, 1, 1000);
 	res = HAL_SPI_Receive(handle, bufp, len, 1000);
+	taskEXIT_CRITICAL();
 	HAL_GPIO_WritePin(CS_up_GPIO_Port, CS_up_Pin, GPIO_PIN_SET);
 	return res;
 }

@@ -12,7 +12,7 @@ extern micros();
 int _write(int file, char *ptr, int len) {
 	int DataIdx;
 
-	for(DataIdx = 0; DataIdx < len; DataIdx++) {
+	for (DataIdx = 0; DataIdx < len; DataIdx++) {
 		ITM_SendChar(*ptr++);
 	}
 	return len;
@@ -42,22 +42,29 @@ bool sys_logs_rdy = false;				// Flag to indicate when sys logs are ready to be 
 void store_sys_log(char *log_msg, ...) {
 	va_list args;
 	va_start(args, log_msg);
-	vprintf(log_msg, args);
+
+	// Create a buffer to hold the formatted log message
+	char formatted_log_msg[160];
+	vsnprintf(formatted_log_msg, sizeof(formatted_log_msg), log_msg, args);
+
 	va_end(args);
-	// Add system time and new line character to data
+
+	// Add system time and new line character to the formatted log message
 	char msg[160];
+	size_t sz = snprintf(msg, sizeof(msg), "%lu:%s\r\n", micros(), formatted_log_msg);
+
 	taskENTER_CRITICAL();
-	size_t sz = snprintf(msg, sizeof(msg), "%lu:%s\r\n", micros(), log_msg);
-	if (sys_logs_pos_idx + sz + 1 < sizeof(msg)) {
+	if (sys_logs_pos_idx + sz + 1 < sizeof(sys_logs_buff)) {
 		memcpy(&sys_logs_buff[sys_logs_pos_idx], msg, sz);
 		sys_logs_pos_idx += sz;
 	}
 	taskEXIT_CRITICAL();
+
 	sys_logs_rdy = true;
 }
 
 void write_sys_logs() {
-	SD_write_sys_logs_batch((uint8_t*)sys_logs_buff, sys_logs_pos_idx);
+	SD_write_sys_logs_batch((uint8_t*) sys_logs_buff, sys_logs_pos_idx);
 	sys_logs_pos_idx = 0;
 	sys_logs_rdy = false;
 }
