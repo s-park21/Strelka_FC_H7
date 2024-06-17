@@ -213,9 +213,9 @@ ematchState test_continuity(ADC_HandleTypeDef *hadc, GPIO_TypeDef *L_port, uint1
 #define V_REF 3.3 // Replace with your ADC reference voltage
 
 // Battery voltage regression values
-#define NUM_POINTS 11
+#define NUM_POINTS 12
 #define NUM_COLS 2
-float battery_adc_voltage[NUM_POINTS][NUM_COLS] = { { 46042, 4.2 }, { 45572, 4.0 }, { 44922, 3.8 }, { 44231, 3.6 }, { 43428, 3.4 }, { 42580, 3.22 }, { 41691, 3.0 }, { 40633, 2.8 }, { 39312, 2.6 }, { 38028, 2.4 } };
+float battery_adc_voltage[NUM_POINTS][NUM_COLS] = { { 46742.56, 4.4 }, { 46042, 4.2 }, { 45572, 4.0 }, { 44922, 3.8 }, { 44231, 3.6 }, { 43428, 3.4 }, { 42580, 3.22 }, { 41691, 3.0 }, { 40633, 2.8 }, { 39312, 2.6 }, { 38028, 2.4 } };
 
 float interpolateBatteryVoltage(float adc_value, float battery_adc_voltage[NUM_POINTS][NUM_COLS]) {
 	int idx = 0;
