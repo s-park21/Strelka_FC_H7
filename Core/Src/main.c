@@ -39,12 +39,12 @@
 #include "digital_filter.h"
 #include "State_Controller.h"
 /* USER CODE END Includes */
-
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticSemaphore_t osStaticSemaphoreDef_t;
 /* USER CODE BEGIN PTD */
-
+#define RUN_HITL
+uint32_t read_timestamp;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -283,6 +283,7 @@ int main(void) {
 	/* MCU Configuration--------------------------------------------------------*/
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
@@ -2181,23 +2182,33 @@ void Data_Logging(void *argument) {
 	const uint8_t max_batch_size = 100;
 
 #ifdef RUN_HITL
-		/*
-		 * If RUN_HITL is defined, this code will read sensor data from files stored
-		 * in the flash memory and load that data into the real data structures.
-		 * This will simulate the device operating in the conditions that the
-		 * simulated data was captured in.
-		 * There must be a folder called /HITL containing a file called /data.csv.
-		 * This data must carry data in the following format:
-		 * timestamp,accel1X,accel1Z,accel1Z,accel2X,accel2Z,accel2Z,accel3X,accel3Z,accel3Z,gyro1X,gyro1Y,gyro1Z,gyro2X,gyro2Y,gyro2Z,mag1X,mag1Y,mag1Z,baro_altitude,baro_pressure,baro_temperature,gps_latitude,gps_longitude,gps_altitude\n
-		 */
-		// Check that simulated data files exist
-		bool do_hitl = false;
-		FILINFO dir_info;
-		FRESULT fr;
-		fr = f_stat("/HITL", &dir_info);
-		if (fr == FR_OK) {
-			do_hitl = true;
-		}
+	/*
+	 * If RUN_HITL is defined, this code will read sensor data from files stored
+	 * in the flash memory and load that data into the real data structures.
+	 * This will simulate the device operating in the conditions that the
+	 * simulated data was captured in.
+	 * There must be a folder called /HITL containing a file called /data.csv.
+	 * This data must carry data in the following format:
+	 * timestamp,accel1X,accel1Z,accel1Z,accel2X,accel2Z,accel2Z,accel3X,accel3Z,accel3Z,gyro1X,gyro1Y,gyro1Z,gyro2X,gyro2Y,gyro2Z,mag1X,mag1Y,mag1Z,baro_altitude,baro_pressure,baro_temperature,gps_latitude,gps_longitude,gps_altitude\n
+	 */
+	// Check that simulated data files exist
+	bool do_hitl = false;
+	read_timestamp = 0;
+	bool first_run = true;
+	FSIZE_t lastReadPos = 0;
+	FILINFO dir_info;
+	FRESULT fr;
+	fr = f_stat("/HITL", &dir_info);
+	if (fr == FR_OK) {
+		do_hitl = true;
+	}
+	sensors_initialised = true;
+	bmx055.acc_good = true;
+	bmx055.gyro_good = true;
+	bmx055.mag_good = true;
+	asm330.acc_good = true;
+	asm330.gyro_good = true;
+	ms5611.baro_good = true;
 #endif // RUN_HITL
 
 	for (;;) {
@@ -2301,24 +2312,29 @@ void Data_Logging(void *argument) {
 			osDelay(1000);
 		}
 #ifdef RUN_HITL
-		if(do_hitl) {
+		if (do_hitl) {
 			// Open file
-			uint32_t bytes_read;
-			uint32_t read_timestamp = 0;
+			UINT bytes_read;
 			if (osSemaphoreAcquire(SDMMCSemaphoreHandle, 2000) == osOK) {
 				res = f_open(&SDFile, "/HITL/data.csv", FA_READ);
+				// Return file pointer to last read location
+				res = f_lseek(&SDFile, lastReadPos);
+				if (f_eof(&SDFile)) {
+					// If end of file is reached, loop forever
+					Non_Blocking_Error_Handler();
+				}
 				if (res == FR_OK) {
 					// Loop to find closest data point to current system time
-					while(read_timestamp < micros()) {
-						char read_chr = '';
-						while(read_chr != '\n') {
+					while (read_timestamp < micros()) {
+						char read_chr = '\0';
+						while (read_chr != '\n') {
 							res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
 						}
 						// Read time stamp
 						char read_line[28];			// Assume that a timestamp cannot be longer than 28 characters
 						uint8_t num_chars = 0;		// Number of characters in the timestamp string
-						read_chr = '';
-						while(read_chr != ',') {
+						read_chr = '\0';
+						while (read_chr != ',') {
 							res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
 							read_line[num_chars] = read_chr;
 							num_chars++;
@@ -2327,41 +2343,51 @@ void Data_Logging(void *argument) {
 						char *endptr;
 						read_timestamp = strtol(read_line, &endptr, 10);
 					}
+					// Wait for the real time to catch up to within 1ms
+					if (read_timestamp > micros()) {
+						while ((int)read_timestamp - (int)micros() > 100) {
+							osDelay(10);
+						}
+					}
+
 					// Most up to date data has been found. Read a line.
 					// timestamp,accel1X,accel1Z,accel1Z,accel2X,accel2Z,accel2Z,accel3X,accel3Z,accel3Z,gyro1X,gyro1Y,gyro1Z,gyro2X,gyro2Y,gyro2Z,mag1X,mag1Y,mag1Z,baro_altitude,baro_pressure,baro_temperature,gps_latitude,gps_longitude,gps_altitude\n
 					char read_line[512];			// Assume that a line cannot be longer than 512 characters
 					uint32_t num_chars = 0;			// Number of characters in the timestamp string
-					read_chr = '';
-					while(read_chr != '\n') {
+					char read_chr = '\0';
+					while (read_chr != '\n') {
 						res = f_read(&SDFile, &read_chr, sizeof(read_chr), &bytes_read);
 						read_line[num_chars] = read_chr;
 						num_chars++;
 					}
 					// Add end of string character
-					read_line[num_chars+1] = '\0';
+					read_line[num_chars + 1] = '\0';
 
 					// Convert read line to numbers
-					float data_numbers[24];			// Array to hold all 24 floats in a single data line
+					float data_numbers[21];			// Array to hold all 24 floats in a single data line
 					char *endptr = read_line;
-					bool decode_good = false;
-					for(int i=0; i<sizeof(data_numbers)/sizeof(float); i++) {
-						char* prevptr = endptr;
+					bool decode_good = true;
+					for (int i = 0; i < sizeof(data_numbers) / sizeof(float); i++) {
+						char *prevptr = endptr;
 						float read_num = strtod(prevptr, &endptr);
-						if(endptr != prevptr && read_num != HUGE_VAL && read_num != -HUGE_VAL) {
+						if (*endptr == ',') {
+							// Skip to next character
+							endptr++;
+						}
+						if (endptr != prevptr && read_num != HUGE_VAL && read_num != -HUGE_VAL) {
 							// A number was decoded successfully
 							data_numbers[i] = read_num;
-						}
-						else {
+						} else {
 							decode_good = false;
 							break;
 						}
-						if(*endptr == '\0') {
+						if (*endptr == '\0' || *endptr == '\r' || *endptr == '\n') {
 							// End of string has been reached
 							break;
 							decode_good = true;
 						}
 					}
-					if(decode_good) {
+					if (decode_good) {
 						// Copy the converted floats into the relevant data structures
 						asm330_data.accel[0] = data_numbers[0];
 						asm330_data.accel[1] = data_numbers[1];
@@ -2381,11 +2407,20 @@ void Data_Logging(void *argument) {
 						bmx055_data.mag[0] = data_numbers[15];
 						bmx055_data.mag[1] = data_numbers[16];
 						bmx055_data.mag[2] = data_numbers[17];
-						ms5611_data.pressure = data_numbers[18];
-						ms5611_data.altitude = data_numbers[19];
+						ms5611_data.altitude = data_numbers[18];
+						ms5611_data.pressure = data_numbers[19];
 						ms5611_data.temperature = data_numbers[20];
 						// TODO: Find a way to put GPS data into data structures
+
+						if(first_run) {
+							first_run = false;
+							system_state.starting_altitude = ms5611_data.altitude;
+							system_state.starting_pressure = ms5611_data.pressure;
+							system_state.starting_temperature = ms5611_data.temperature;
+						}
 					}
+					lastReadPos = f_tell(&SDFile);
+					res = f_close(&SDFile);
 				}
 				osSemaphoreRelease(SDMMCSemaphoreHandle);
 			}
@@ -2453,8 +2488,6 @@ void Extended_Kalman_Filter(void *argument) {
 	}
 	uint32_t currentSampleTime = 0;
 	uint32_t lastSampleTime = 0;
-	uint32_t correct_freq = 1;
-	uint32_t update_index = 0;
 	float p, q, r;
 	float ax, ay, az;
 	EKF_fs_Status_t res = EKF_fs_init(&ekf);
@@ -2531,7 +2564,6 @@ void Extended_Kalman_Filter(void *argument) {
 		}
 
 		// Update with GPS if GPS has fix and rocket is not on ascent
-		// TODO: Add check for NaN of actual data
 		if (gps.gps_good && system_state.flight_state != LAUNCHED && system_state.flight_state != BURNOUT && gps_data.initial_latitude != 0 && !isnanf(gps_data.initial_latitude)) {
 			float lat = minmea_tocoord(&gps.gga_frame.latitude);
 			float lng = minmea_tocoord(&gps.gga_frame.longitude);
