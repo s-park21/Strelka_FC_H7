@@ -29,7 +29,7 @@
 #include "Sensors.h"
 #include "LoRa.h"
 #include "ASM330.h"
-#include "ADXL375.h"
+//#include "ADXL375.h"
 #include "debug.h"
 #include "gps.h"
 #include "State_Machine.h"
@@ -206,7 +206,7 @@ MS5611_Handle ms5611 = { .hspi = &hspi4, .baro_CS_port = SPI4_NSS_GPIO_Port, .ba
 ms5611_osr_t osr = MS5611_ULTRA_HIGH_RES;
 SD_Handle_t SD_card = { .flash_good = false, .log_frequency = 50, .flash_logging_enabled = true };
 ASM330_handle asm330 = { .hspi = &hspi2, .CS_GPIO_Port = SPI2_NSS4_GPIO_Port, .CS_Pin = SPI2_NSS4_Pin, .accel_odr = ASM330LHHX_XL_ODR_833Hz, .accel_scale = ASM330LHHX_16g, .gyro_odr = ASM330LHHX_XL_ODR_833Hz, .gyro_scale = ASM330LHHX_4000dps, .acc_good = false, .gyro_good = false, };
-ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
+//ADXL375_t adxl375 = { .acc_good = false, .hspi = &hspi1, .CS_port = SPI1_NSS_GPIO_Port, .CS_pin = SPI1_NSS_Pin, .sample_rate = ADXL375_RATE_800Hz };
 Sensor_State sensor_state = { .asm330_acc_good = (bool*) &asm330.acc_good, .asm330_gyro_good = (bool*) &asm330.gyro_good, .bmx055_acc_good = &bmx055.acc_good, .bmx055_gyro_good = &bmx055.gyro_good, .bmx055_mag_good = &bmx055.mag_good, .flash_good = &SD_card.flash_good, .gps_good = &gps.gps_good, .lora_good = &LoRa_Handle.lora_good, .ms5611_good = &ms5611.baro_good, };
 extern State_Machine_Internal_State_t internal_state_fc; // System state internal state for debug logging
 GPS_Tracking_Handle gps_tracker = { .tracking_enabled = false, .chirp_frequency = 0.5 };
@@ -325,22 +325,22 @@ int main(void) {
 	device_hardware_id = DBGMCU->IDCODE;
 
 	/* LoRa configurations */
-	LoRa_Handle = newLoRa();
-	LoRa_Handle.hSPIx = &hspi2;
-	LoRa_Handle.CS_port = SPI2_NSS5_GPIO_Port;
-	LoRa_Handle.CS_pin = SPI2_NSS5_Pin;
-	LoRa_Handle.reset_port = RESET_RF_GPIO_Port;
-	LoRa_Handle.reset_pin = RESET_RF_Pin;
-	LoRa_Handle.DIO0_port = IO0_RF_GPIO_Port;
-	LoRa_Handle.DIO0_pin = IO0_RF_Pin;
-
-	LoRa_Handle.frequency = 915;
-	LoRa_Handle.spredingFactor = SF_7;		 // default = SF_7
-	LoRa_Handle.bandWidth = BW_500KHz;		 // default = BW_125KHz
-	LoRa_Handle.crcRate = CR_4_5;			 // default = CR_4_5
-	LoRa_Handle.power = POWER_17db;			 // default = 17db
-	LoRa_Handle.overCurrentProtection = 120; // default = 100 mA
-	LoRa_Handle.preamble = 8;				 // default = 8;
+//	LoRa_Handle = newLoRa();
+//	LoRa_Handle.hSPIx = &hspi2;
+//	LoRa_Handle.CS_port = SPI2_NSS5_GPIO_Port;
+//	LoRa_Handle.CS_pin = SPI2_NSS5_Pin;
+//	LoRa_Handle.reset_port = RESET_RF_GPIO_Port;
+//	LoRa_Handle.reset_pin = RESET_RF_Pin;
+//	LoRa_Handle.DIO0_port = IO0_RF_GPIO_Port;
+//	LoRa_Handle.DIO0_pin = IO0_RF_Pin;
+//
+//	LoRa_Handle.frequency = 915;
+//	LoRa_Handle.spredingFactor = SF_7;		 // default = SF_7
+//	LoRa_Handle.bandWidth = BW_500KHz;		 // default = BW_125KHz
+//	LoRa_Handle.crcRate = CR_4_5;			 // default = CR_4_5
+//	LoRa_Handle.power = POWER_17db;			 // default = 17db
+//	LoRa_Handle.overCurrentProtection = 120; // default = 100 mA
+//	LoRa_Handle.preamble = 8;				 // default = 8;
 
 	/* Full state Kalman filter configurations */
 	memset(ekf.state_vec_data, 0, sizeof(ekf.state_vec_data));
@@ -1771,8 +1771,6 @@ void State_Machine(void *argument) {
 		memcpy(qu_data, ekf.state_vec_data, 4 * sizeof(float));
 		arm_mat_init_f32(&qu, 4, 1, qu_data);
 		uint8_t result = calculate_attitude_error(&qu, &up_vec, &angle_from_vertical, &normal_vector);
-		// Remove to enable angle check
-		angle_from_vertical = 0;
 
 		if (!result) {
 			if (asm330.acc_good) {
@@ -1941,11 +1939,11 @@ void Sample_Sensors(void *argument) {
 	}
 
 	/* Init ADXL375 */
-	if (ADXL375_init(&adxl375, adxl375_data.acc_offsets[0], adxl375_data.acc_offsets[1], adxl375_data.acc_offsets[2])) {
-		store_sys_log("Error: ADXL375 failed to initialise");
-//		Non_Blocking_Error_Handler();
-		adxl375.acc_good = true;
-	}
+//	if (ADXL375_init(&adxl375, adxl375_data.acc_offsets[0], adxl375_data.acc_offsets[1], adxl375_data.acc_offsets[2])) {
+//		store_sys_log("Error: ADXL375 failed to initialise");
+////		Non_Blocking_Error_Handler();
+//		adxl375.acc_good = true;
+//	}
 
 	/* Init GPS */
 	HAL_UART_Receive_DMA(&huart2, gps_data.gps_buffer, sizeof(gps_data.gps_buffer));
@@ -1960,7 +1958,7 @@ void Sample_Sensors(void *argument) {
 	/* Perform system checks before arming */
 	// Check e-match continuities
 	// Check critical sensors
-	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false || adxl375.acc_good == false) {
+	if ((bmx055.acc_good == false && asm330.acc_good == false) || ms5611.baro_good == false) {
 		store_sys_log("Error: Sensors failed to initialise");
 		// Alert critical sensor error code
 		Error_Handler();
@@ -2069,25 +2067,25 @@ void Sample_Sensors(void *argument) {
 void LoRa_Radio(void *argument) {
 	/* USER CODE BEGIN LoRa_Radio */
 	/* Initialise the LoRa radio*/
-	LoRa_reset(&LoRa_Handle);
-	LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
-	if (LoRa_init(&LoRa_Handle) != LORA_OK) {
-		store_sys_log("Error: RFM95 failed to initialise");
-		Non_Blocking_Error_Handler();
-	}
-	LoRa_startReceiving(&LoRa_Handle);
+//	LoRa_reset(&LoRa_Handle);
+//	LoRa_setModulation(&LoRa_Handle, LORA_MODULATION);
+//	if (LoRa_init(&LoRa_Handle) != LORA_OK) {
+//		store_sys_log("Error: RFM95 failed to initialise");
+//		Non_Blocking_Error_Handler();
+//	}
+//	LoRa_startReceiving(&LoRa_Handle);
 
 	/* Infinite loop */
 	for (;;) {
 		// Wait for LoRa to be ready before running task
 		xTaskNotifyWait(0, 0, NULL, (TickType_t) portMAX_DELAY);
-		uint8_t received_bytes = LoRa_received_bytes(&LoRa_Handle);
-		uint8_t rf_buffer[RF_MAX_PACKET_SIZE] = { 0 };
-		uint8_t bytes_read = LoRa_receive(&LoRa_Handle, rf_buffer, received_bytes);
-		if (bytes_read > 0) {
-			handle_rf_rx_packet(rf_buffer, (size_t) bytes_read);
-			LoRa_startReceiving(&LoRa_Handle);
-		}
+//		uint8_t received_bytes = LoRa_received_bytes(&LoRa_Handle);
+//		uint8_t rf_buffer[RF_MAX_PACKET_SIZE] = { 0 };
+//		uint8_t bytes_read = LoRa_receive(&LoRa_Handle, rf_buffer, received_bytes);
+//		if (bytes_read > 0) {
+//			handle_rf_rx_packet(rf_buffer, (size_t) bytes_read);
+//			LoRa_startReceiving(&LoRa_Handle);
+//		}
 	}
 	/* USER CODE END LoRa_Radio */
 }
@@ -2103,20 +2101,20 @@ void Sample_Baro(void *argument) {
 	/* USER CODE BEGIN Sample_Baro */
 	/* Init MS5611 */
 	// Wait until barometer is initialised
-	while (!ms5611.baro_good && !adxl375.acc_good) {
+	while (!ms5611.baro_good) {
 		osDelay(10);
 	}
 	/* Infinite loop */
 	for (;;) {
 #ifndef RUN_HITL
 		// Read from ADXL375
-		if (ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
-			store_sys_log("Error: Failed to read from ADXL375");
-		}
-		float x = adxl375_data.accel[0];
-		float y = adxl375_data.accel[1];
-		adxl375_data.accel[0] = -y;
-		adxl375_data.accel[1] = x;
+//		if (ADXL375_readSensor(&adxl375, adxl375_data.accel)) {
+//			store_sys_log("Error: Failed to read from ADXL375");
+//		}
+//		float x = adxl375_data.accel[0];
+//		float y = adxl375_data.accel[1];
+//		adxl375_data.accel[0] = -y;
+//		adxl375_data.accel[1] = x;
 
 		// Read from baro
 		float pressure_reading = (float) MS5611_readPressure(&ms5611, 1);
@@ -2376,15 +2374,15 @@ void Extended_Kalman_Filter(void *argument) {
 			az = (float) (bmx055_data.accel[2]);
 		}
 		// If sensor is close to saturation (16G), use high G accelerometer
-		if (adxl375.acc_good) {
-			if (ax >= 15 || ay >= 15 || az >= 15) {
-				/* ENSURE AXES OF SENSOR ARE ALIGNED WITH OTHER SENSORS */
-#warning "Ensure that axes of high G accelerometer are aligned/configured correctly"
-				ax = (float) (adxl375_data.accel[0]);
-				ay = (float) (adxl375_data.accel[1]);
-				az = (float) (adxl375_data.accel[2]);
-			}
-		}
+//		if (adxl375.acc_good) {
+//			if (ax >= 15 || ay >= 15 || az >= 15) {
+//				/* ENSURE AXES OF SENSOR ARE ALIGNED WITH OTHER SENSORS */
+//#warning "Ensure that axes of high G accelerometer are aligned/configured correctly"
+//				ax = (float) (adxl375_data.accel[0]);
+//				ay = (float) (adxl375_data.accel[1]);
+//				az = (float) (adxl375_data.accel[2]);
+//			}
+//		}
 
 		// Run gyroscope predict step
 		if (asm330.gyro_good || bmx055.gyro_good) {
