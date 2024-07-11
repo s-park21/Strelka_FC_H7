@@ -2418,6 +2418,8 @@ void Data_Logging(void *argument) {
 							system_state.starting_pressure = ms5611_data.pressure;
 							system_state.starting_temperature = ms5611_data.temperature;
 						}
+						asm330.acc_good = true;
+						ms5611.baro_good = true;
 					}
 					lastReadPos = f_tell(&SDFile);
 					res = f_close(&SDFile);

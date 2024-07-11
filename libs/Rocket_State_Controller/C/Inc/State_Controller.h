@@ -45,8 +45,7 @@
 #define APOGEE_DETECT_VELOCITY_THRESHOLD 1.0f // m/s
 #define ALTITUDE_LP_FILTER_CUTOFF_FREQ 1.0f	  // Hz
 #define ACCEL_LP_FILTER_CUTOFF_FREQ 1.0f	  // Hz
-#define APOGEE_DETECT_ACCEL_THRESHOLD 0.3f	  // g
-#define APOGEE_DETECT_LOCKOUT_TIME 5.0f	 	  // s - Elapse time after launch required before apogee can be detected
+#define APOGEE_DETECT_ACCEL_THRESHOLD 2.0	  // g
 
 // Main deploy altitude detection constants
 #define MAIN_DEPLOY_ALTITUDE 160 // m above the starting altitude (ground)
