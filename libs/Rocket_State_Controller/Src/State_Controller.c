@@ -129,6 +129,7 @@ bool calculate_up_axis(float ax, float ay, float az) {
 	return false;
 }
 
+bool burnout_logged = false;
 bool detect_burnout_accel(float ax, float ay, float az, float altitude, uint32_t timestamp_ms) {
 	// Detect burnout with a timeout as back up
 	float time_since_launch = (float) (timestamp_ms - system_state.launch_time) / 1000.0;
@@ -167,12 +168,13 @@ bool detect_burnout_accel(float ax, float ay, float az, float altitude, uint32_t
 		float filtered_acceleration = getMedianValue(burnout_median_filter.values, (size_t) burnout_median_filter.size);
 		internal_state_fc.filtered_burnout_detect_x_axis_accel = filtered_acceleration;
 		if (filtered_acceleration <= BURNOUT_ACCEL_THRESHOLD) {
-			// Register burnout
-			if (system_state.flight_state != BURNOUT) {
+			if (!burnout_logged) {
+				burnout_logged = true;
+				// Register burnout
+				system_state.flight_state = BURNOUT;
 				system_state.burnout_time = timestamp_ms;
 				system_state.burnout_altitude = altitude;
 			}
-			system_state.flight_state = BURNOUT;
 			return true;
 		}
 	}
@@ -198,7 +200,8 @@ bool detect_apogee(float ax, float ay, float az, float altitude, uint32_t timest
 			internal_state_fc.filtered_apogee_detect_vertical_velocity = filtered_vertical_velocity;
 
 			if (filtered_vertical_velocity <= APOGEE_DETECT_VELOCITY_THRESHOLD) {
-				if (filtered_accel <= APOGEE_DETECT_ACCEL_THRESHOLD) {
+				float time_since_launch = (float) ((timestamp_ms - system_state.launch_time) / 1000.0f);
+				if (filtered_accel <= APOGEE_DETECT_ACCEL_THRESHOLD && time_since_launch >= APOGEE_DETECT_LOCKOUT_TIME) {
 					// Register apogee
 					system_state.flight_state = APOGEE;
 					system_state.drogue_deploy_time = timestamp_ms;
