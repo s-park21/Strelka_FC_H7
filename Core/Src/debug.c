@@ -51,7 +51,7 @@ void store_sys_log(char *log_msg, ...) {
 
 	// Add system time and new line character to the formatted log message
 	char msg[160];
-	size_t sz = snprintf(msg, sizeof(msg), "%lu:%s\r\n", micros(), formatted_log_msg);
+	size_t sz = snprintf(msg, sizeof(msg), "%u:%s\r\n", micros(), formatted_log_msg);
 
 	taskENTER_CRITICAL();
 	if (sys_logs_pos_idx + sz + 1 < sizeof(sys_logs_buff)) {

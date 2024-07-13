@@ -8,8 +8,6 @@
 #ifndef INC_MS5611_H_
 #define INC_MS5611_H_
 
-#endif /* INC_MS5611_H_ */
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -62,3 +60,5 @@ uint8_t MS5611_readRegister24(MS5611_Handle *ms5611, uint8_t register_addr, uint
 uint8_t MS5611_readRegister(MS5611_Handle *ms5611, uint8_t register_addr, uint8_t *data);
 uint8_t MS5611_writeRegister(MS5611_Handle *ms5611, uint8_t register_addr, uint8_t value);
 uint8_t MS5611_sendCommand(MS5611_Handle *ms5611, uint8_t cmd);
+
+#endif /* INC_MS5611_H_ */

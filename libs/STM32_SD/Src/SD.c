@@ -263,7 +263,7 @@ FRESULT SD_write_headers() {
 	snprintf(sys_header, sizeof(sys_header), "%s%s\n", sys_header, GIT_INFO);
 #endif
 	// Add hardware ID
-	snprintf(sys_header, sizeof(sys_header), "%sDevice hardware ID: %d\r\n", sys_header, DBGMCU->IDCODE);
+	snprintf(sys_header, sizeof(sys_header), "%sDevice hardware ID: %lu\r\n", sys_header, DBGMCU->IDCODE);
 	if (osSemaphoreAcquire(SDMMCSemaphoreHandle, 2000) == osOK) {
 		res = f_write(&SDFile, sys_header, sizeof(sys_header), (void*) &byteswritten);
 		osSemaphoreRelease(SDMMCSemaphoreHandle);
