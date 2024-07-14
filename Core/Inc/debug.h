@@ -32,6 +32,19 @@ enum debug_level {
 	CRITICAL = 4,	// The highest level of severity, used to indicate critical errors that require immediate attention
 	LOG_OUTPUT = 5	// A log level that if called, will only display certain data
 };
+
+typedef struct {
+	UBaseType_t DefaultTaskHighWaterMark;
+	UBaseType_t StateMachineTaskHighWaterMark;
+	UBaseType_t SampleSensorsTaskHighWaterMark;
+	UBaseType_t LoRaTaskHighWaterMark;
+	UBaseType_t SampleBaroTaskHighWaterMark;
+	UBaseType_t DataloggingTaskHighWaterMark;
+	UBaseType_t GPSTaskHighWaterMark;
+	UBaseType_t EKFTaskHighWaterMark;
+	UBaseType_t SysMonitorTaskHighWaterMark;
+} Task_States_t;
+
 extern enum debug_level dbg_level;	// Globally defined debug print verbosity, define in main.c
 extern enum debug_level dbg;		// Variable used to pass into debug_print() when its called to define print statement verbosity, define in main.c
 
