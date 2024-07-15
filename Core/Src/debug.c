@@ -44,13 +44,13 @@ void store_sys_log(char *log_msg, ...) {
 	va_start(args, log_msg);
 
 	// Create a buffer to hold the formatted log message
-	char formatted_log_msg[160];
+	char formatted_log_msg[256];
 	vsnprintf(formatted_log_msg, sizeof(formatted_log_msg), log_msg, args);
 
 	va_end(args);
 
 	// Add system time and new line character to the formatted log message
-	char msg[160];
+	char msg[256];
 	size_t sz = snprintf(msg, sizeof(msg), "%u:%s\r\n", micros(), formatted_log_msg);
 
 	taskENTER_CRITICAL();
